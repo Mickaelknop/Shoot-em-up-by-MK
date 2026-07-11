@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
+<meta name="theme-color" content="#05030f">
+<title>NOVA STRIKER — Shoot'em up</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game"></canvas>
+
+  <!-- Boutons persistants -->
+  <button id="btn-pause" class="icon-btn hidden" aria-label="Pause">❚❚</button>
+  <button id="btn-mute" class="icon-btn" aria-label="Son">♪</button>
+
+  <!-- Écran titre -->
+  <div id="screen-title" class="screen">
+    <div class="title-logo">
+      <div class="title-main">NOVA<br>STRIKER</div>
+      <div class="title-sub">— MISSION BYDO —</div>
+    </div>
+    <div class="hiscore">MEILLEUR SCORE<br><span id="title-hiscore">0</span></div>
+    <button id="btn-start" class="big-btn">APPUYER POUR JOUER</button>
+    <div class="hint">Glissez le doigt pour piloter<br>Tir automatique</div>
+  </div>
+
+  <!-- Écran pause -->
+  <div id="screen-pause" class="screen hidden">
+    <div class="screen-title">PAUSE</div>
+    <button id="btn-resume" class="big-btn">REPRENDRE</button>
+    <button id="btn-quit" class="small-btn">QUITTER LA PARTIE</button>
+  </div>
+
+  <!-- Écran game over -->
+  <div id="screen-gameover" class="screen hidden">
+    <div class="screen-title danger">GAME OVER</div>
+    <div class="score-final">SCORE<br><span id="go-score">0</span></div>
+    <div class="hiscore">MEILLEUR SCORE<br><span id="go-hiscore">0</span></div>
+    <div id="go-newrecord" class="newrecord hidden">★ NOUVEAU RECORD ★</div>
+    <button id="btn-retry" class="big-btn">REJOUER</button>
+    <button id="btn-gotitle" class="small-btn">MENU PRINCIPAL</button>
+  </div>
+
+  <!-- Écran victoire -->
+  <div id="screen-victory" class="screen hidden">
+    <div class="screen-title victory">MISSION<br>ACCOMPLIE</div>
+    <div class="score-final">SCORE<br><span id="v-score">0</span></div>
+    <div class="hiscore">MEILLEUR SCORE<br><span id="v-hiscore">0</span></div>
+    <div id="v-newrecord" class="newrecord hidden">★ NOUVEAU RECORD ★</div>
+    <button id="btn-retry2" class="big-btn">REJOUER</button>
+    <button id="btn-gotitle2" class="small-btn">MENU PRINCIPAL</button>
+  </div>
+
+  <!-- Chargement -->
+  <div id="screen-loading" class="screen">
+    <div class="screen-title">CHARGEMENT…</div>
+  </div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
