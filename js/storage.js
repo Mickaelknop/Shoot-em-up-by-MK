@@ -35,3 +35,16 @@ export function getPseudo() {
 export function setPseudo(pseudo) {
   write(STORAGE_KEYS.pseudo, pseudo);
 }
+
+// Jeton anonyme identifiant ce navigateur comme « propriétaire » d'un pseudo.
+// Généré une fois et conservé localement (jamais exposé publiquement).
+export function getOwner() {
+  let o = read(STORAGE_KEYS.owner, '');
+  if (!o) {
+    o = (window.crypto && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'own-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+    write(STORAGE_KEYS.owner, o);
+  }
+  return o;
+}

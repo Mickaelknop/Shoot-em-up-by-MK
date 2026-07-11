@@ -2,8 +2,8 @@
 import { loadAssets } from './assets.js';
 import { Game } from './game.js';
 import { unlockAudio, toggleMute, isMuted } from './audio.js';
-import { getHiscore, getPseudo, setPseudo } from './storage.js';
-import { validatePseudo, submitScore, fetchTop, fetchRank } from './leaderboard.js';
+import { getHiscore, getPseudo, setPseudo, getOwner } from './storage.js';
+import { validatePseudo, checkPseudo, submitScore, fetchTop, fetchRank } from './leaderboard.js';
 import { LEVELS } from './level.js';
 
 const $ = (id) => document.getElementById(id);
@@ -84,15 +84,26 @@ async function boot() {
     renderLeaderboard(container, rows, { pseudo: currentPseudo });
   }
 
-  // Fin de partie : soumet le score puis affiche Top 10 + rang perso.
+  // Fin de partie : soumet le score (une ligne/pseudo, meilleur conservé) puis
+  // affiche Top 10 + rang perso basé sur le MEILLEUR score du pseudo.
   async function handleEndScreen(kind, score) {
     const container = kind === 'gameover' ? $('go-leaderboard') : $('v-leaderboard');
     setLoading(container);
     const pseudo = currentPseudo || getPseudo();
-    if (pseudo && score > 0) await submitScore(pseudo, score);
-    const [rows, rankInfo] = await Promise.all([fetchTop(), fetchRank(score)]);
+    let best = score;
+    let status = null;
+    if (pseudo && score > 0) {
+      const res = await submitScore(pseudo, score, getOwner());
+      if (res) {
+        status = res.status;
+        if (typeof res.best === 'number') best = res.best;
+      }
+    }
+    const [rows, rankInfo] = await Promise.all([fetchTop(), fetchRank(best)]);
     renderLeaderboard(container, rows, {
-      pseudo, score,
+      // Si le pseudo appartient à un autre joueur, pas de surbrillance.
+      pseudo: status === 'taken' ? null : pseudo,
+      score: best,
       rank: rankInfo ? rankInfo.rank : null,
       total: rankInfo ? rankInfo.total : null,
     });
@@ -163,15 +174,31 @@ async function boot() {
   pseudoInput.value = currentPseudo;
   pseudoInput.addEventListener('input', () => pseudoError.classList.add('hidden'));
 
-  function tryStart() {
+  function showPseudoError(msg) {
+    pseudoError.textContent = msg;
+    pseudoError.classList.remove('hidden');
+    pseudoInput.focus();
+  }
+
+  let starting = false;
+  async function tryStart() {
+    if (starting) return;
     const v = validatePseudo(pseudoInput.value);
-    if (!v.ok) {
-      pseudoError.textContent = v.error;
-      pseudoError.classList.remove('hidden');
-      pseudoInput.focus();
+    if (!v.ok) { showPseudoError(v.error); return; }
+    pseudoError.classList.add('hidden');
+    starting = true;
+    const startBtn = $('btn-start');
+    const label = startBtn.textContent;
+    startBtn.textContent = '…';
+    // Vérifie que le pseudo n'appartient pas à un AUTRE joueur.
+    // En cas d'échec réseau (null), on laisse jouer : le serveur tranchera au score.
+    const avail = await checkPseudo(v.value, getOwner());
+    startBtn.textContent = label;
+    starting = false;
+    if (avail === 'taken') {
+      showPseudoError('Pseudo déjà pris par un autre joueur');
       return;
     }
-    pseudoError.classList.add('hidden');
     currentPseudo = v.value;
     setPseudo(v.value);
     game.startGame();

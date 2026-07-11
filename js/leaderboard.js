@@ -28,25 +28,40 @@ export function validatePseudo(raw) {
   return { ok: true, value };
 }
 
-// Soumet un score. Renvoie true si accepté.
-export async function submitScore(pseudo, score) {
-  const v = validatePseudo(pseudo);
-  if (!v.ok) return false;
-  const s = Math.max(0, Math.min(100000000, Math.round(score)));
+// Appel générique d'une fonction RPC Supabase (PostgREST).
+async function rpc(fn, body) {
   const t = withTimeout(8000);
   try {
-    const res = await fetch(REST, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
       method: 'POST',
-      headers: { ...HEADERS, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ pseudo: v.value, score: s }),
+      headers: { ...HEADERS, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
       signal: t.signal,
     });
-    return res.ok;
+    if (!res.ok) return null;
+    return await res.json();
   } catch {
-    return false;
+    return null;
   } finally {
     t.done();
   }
+}
+
+// Disponibilité d'un pseudo pour ce propriétaire.
+// Renvoie 'available' | 'owned' | 'taken' | 'invalid' | null (erreur réseau).
+export async function checkPseudo(pseudo, owner) {
+  const v = validatePseudo(pseudo);
+  if (!v.ok) return 'invalid';
+  return await rpc('nova_check_pseudo', { p_pseudo: v.value, p_owner: owner });
+}
+
+// Soumet un score via la fonction serveur (une ligne par pseudo, meilleur conservé).
+// Renvoie { status, best } — status : inserted|updated|not_improved|taken|invalid — ou null.
+export async function submitScore(pseudo, score, owner) {
+  const v = validatePseudo(pseudo);
+  if (!v.ok) return null;
+  const s = Math.max(0, Math.min(100000000, Math.round(score)));
+  return await rpc('nova_submit_score', { p_pseudo: v.value, p_score: s, p_owner: owner });
 }
 
 // Récupère les N meilleurs scores. Renvoie un tableau [{pseudo, score}] ou null.

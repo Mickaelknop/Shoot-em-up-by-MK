@@ -86,6 +86,7 @@ export const STORAGE_KEYS = {
   hiscore: 'novastriker_hiscore',
   muted: 'novastriker_muted',
   pseudo: 'novastriker_pseudo',
+  owner: 'novastriker_owner',   // jeton anonyme de propriété du pseudo
 };
 
 // Croissance de la difficulté au fil du niveau (multiplie vitesse/fréquence des tirs)

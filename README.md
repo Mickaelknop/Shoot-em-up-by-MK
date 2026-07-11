@@ -92,21 +92,30 @@ assets/raw/         Images sources brutes (fond magenta) — non chargées par l
 Le classement utilise **Supabase** (Postgres + API REST PostgREST), sans backend à
 maintenir et sans dépendance JS (appels via `fetch`).
 
-- **Table** : `nova_striker_scores (id, pseudo, score, created_at)`, isolée dans le
-  projet Supabase `KingofGolf` (org MikaHome), sans lien avec les autres tables.
-- **Sécurité (RLS)** : la clé `anon` présente dans `config.js` est **publique par
-  conception** — elle est faite pour être exposée dans le navigateur. La protection
-  vient des règles Row-Level Security appliquées côté serveur :
-  - lecture publique du classement ;
-  - insertion publique **validée** (pseudo 2–12 caractères non vides, score borné
-    à `[0 ; 100 000 000]`) ;
-  - **aucune** règle UPDATE/DELETE → modification et suppression impossibles.
-  - La clé `service_role` (secrète) n'est jamais utilisée côté client.
-- **Vérifié** : les insertions invalides sont rejetées (HTTP 401) et les tentatives
-  de PATCH/DELETE n'affectent aucune ligne, même en contournant le code du jeu.
+- **Table** : `nova_striker_scores (id, pseudo, score, owner, created_at)`, isolée dans
+  le projet Supabase `KingofGolf` (org MikaHome). **Une seule ligne par pseudo** =
+  son meilleur score (index unique sur `lower(pseudo)`).
+- **Pseudo unique et « possédé »** : chaque navigateur génère un jeton anonyme
+  (`owner`, stocké en `localStorage`, jamais exposé). Un pseudo appartient au premier
+  jeton qui l'enregistre ; un **autre** joueur ne peut pas le réutiliser. Le **même**
+  joueur qui rejoue ne met à jour son entrée **que** s'il bat son record.
+- **Écritures via fonctions serveur (RPC)** — aucune écriture directe possible :
+  - `nova_check_pseudo(pseudo, owner)` → `available` / `owned` / `taken`
+    (vérifié à la saisie du pseudo, avant de lancer la partie) ;
+  - `nova_submit_score(pseudo, score, owner)` → `inserted` / `updated` /
+    `not_improved` / `taken`, en conservant le meilleur score de façon atomique.
+- **Sécurité** : la clé `anon` de `config.js` est **publique par conception** ; la
+  protection vient du serveur — lecture limitée aux colonnes `pseudo, score`
+  (la colonne `owner` n'est **pas** lisible publiquement), `INSERT/UPDATE/DELETE`
+  directs révoqués, toutes les règles (validation, propriété, meilleur score)
+  appliquées dans les RPC. La clé `service_role` (secrète) n'est jamais utilisée.
+- **Vérifié** : lecture de `owner` refusée (HTTP 401), insertion directe refusée
+  (401), et impossibilité pour un tiers d'écraser un pseudo — même en contournant
+  le code du jeu.
 
-Pour pointer vers un autre projet Supabase, il suffit de modifier `SUPABASE_URL` et
-`SUPABASE_ANON_KEY` dans `js/config.js` et d'y créer la même table + policies.
+Pour pointer vers un autre projet Supabase : modifier `SUPABASE_URL` /
+`SUPABASE_ANON_KEY` dans `js/config.js` et recréer la table, l'index unique et les
+deux fonctions RPC.
 
 ## Outils de test (dev)
 
