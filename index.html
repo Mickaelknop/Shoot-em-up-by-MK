@@ -25,8 +25,19 @@
       <div class="title-sub">— MISSION BYDO —</div>
     </div>
     <div class="hiscore">MEILLEUR SCORE<br><span id="title-hiscore">0</span></div>
-    <button id="btn-start" class="big-btn">APPUYER POUR JOUER</button>
-    <div class="hint">Glissez le doigt pour piloter<br>Tir automatique</div>
+    <div class="pseudo-box">
+      <label for="pseudo-input">PILOTE</label>
+      <input id="pseudo-input" type="text" maxlength="12" autocomplete="off"
+             autocapitalize="characters" spellcheck="false" inputmode="text"
+             placeholder="TON PSEUDO">
+      <div id="pseudo-error" class="pseudo-error hidden"></div>
+    </div>
+    <button id="btn-start" class="big-btn">JOUER</button>
+    <div class="hint">Glissez le doigt pour piloter · Tir automatique</div>
+    <div class="leaderboard" id="title-leaderboard">
+      <div class="lb-title">CLASSEMENT MONDIAL</div>
+      <div class="lb-body lb-loading">…</div>
+    </div>
   </div>
 
   <!-- Écran pause -->
@@ -42,6 +53,10 @@
     <div class="score-final">SCORE<br><span id="go-score">0</span></div>
     <div class="hiscore">MEILLEUR SCORE<br><span id="go-hiscore">0</span></div>
     <div id="go-newrecord" class="newrecord hidden">★ NOUVEAU RECORD ★</div>
+    <div class="leaderboard" id="go-leaderboard">
+      <div class="lb-title">CLASSEMENT MONDIAL</div>
+      <div class="lb-body lb-loading">…</div>
+    </div>
     <button id="btn-retry" class="big-btn">REJOUER</button>
     <button id="btn-gotitle" class="small-btn">MENU PRINCIPAL</button>
   </div>
@@ -52,6 +67,10 @@
     <div class="score-final">SCORE<br><span id="v-score">0</span></div>
     <div class="hiscore">MEILLEUR SCORE<br><span id="v-hiscore">0</span></div>
     <div id="v-newrecord" class="newrecord hidden">★ NOUVEAU RECORD ★</div>
+    <div class="leaderboard" id="v-leaderboard">
+      <div class="lb-title">CLASSEMENT MONDIAL</div>
+      <div class="lb-body lb-loading">…</div>
+    </div>
     <button id="btn-retry2" class="big-btn">REJOUER</button>
     <button id="btn-gotitle2" class="small-btn">MENU PRINCIPAL</button>
   </div>

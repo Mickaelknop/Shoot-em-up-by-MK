@@ -160,3 +160,114 @@ html, body {
   letter-spacing: 1px;
   line-height: 1.7;
 }
+
+/* ---------- Saisie du pseudo ---------- */
+.pseudo-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.pseudo-box label {
+  font-size: clamp(11px, 3.2vw, 13px);
+  letter-spacing: 4px;
+  color: #7fdcff;
+}
+#pseudo-input {
+  width: min(280px, 74vw);
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: clamp(16px, 5vw, 20px);
+  font-weight: 900;
+  letter-spacing: 3px;
+  text-align: center;
+  text-transform: uppercase;
+  color: #eaf6ff;
+  background: rgba(8, 16, 36, 0.85);
+  border: 2px solid rgba(120, 200, 255, 0.55);
+  border-radius: 10px;
+  outline: none;
+  caret-color: #7fdcff;
+}
+#pseudo-input:focus { border-color: #7fe0ff; box-shadow: 0 0 14px rgba(90, 200, 255, 0.5); }
+#pseudo-input::placeholder { color: #46567a; letter-spacing: 2px; }
+.pseudo-error {
+  font-size: clamp(11px, 3.2vw, 13px);
+  color: #ff6b7d;
+  letter-spacing: 1px;
+  min-height: 1em;
+}
+
+/* ---------- Classement ---------- */
+.leaderboard {
+  width: min(320px, 86vw);
+  background: rgba(6, 12, 30, 0.6);
+  border: 1px solid rgba(90, 150, 220, 0.3);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.lb-title {
+  font-size: clamp(11px, 3.2vw, 13px);
+  letter-spacing: 4px;
+  color: #ffb347;
+  text-align: center;
+  margin-bottom: 10px;
+  text-shadow: 0 0 8px rgba(255, 140, 40, 0.5);
+}
+.lb-body { font-size: clamp(12px, 3.4vw, 14px); }
+.lb-loading, .lb-empty, .lb-offline {
+  color: #7286ad;
+  text-align: center;
+  letter-spacing: 1px;
+  padding: 6px 0;
+}
+.lb-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 0;
+  color: #cfe0f5;
+  line-height: 1.4;
+}
+.lb-row .lb-rank {
+  flex: 0 0 26px;
+  text-align: right;
+  color: #8fa3c8;
+  font-weight: bold;
+}
+.lb-row .lb-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 1px;
+}
+.lb-row .lb-score {
+  flex: 0 0 auto;
+  color: #ffe066;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.lb-row.lb-top1 .lb-rank { color: #ffd700; }
+.lb-row.lb-top2 .lb-rank { color: #c8d2e0; }
+.lb-row.lb-top3 .lb-rank { color: #d68a4a; }
+.lb-row.lb-me {
+  background: rgba(90, 160, 255, 0.16);
+  border-radius: 6px;
+  margin: 2px -6px;
+  padding: 3px 6px;
+  color: #eaf6ff;
+}
+.lb-row.lb-me .lb-name { color: #7fe0ff; }
+.lb-sep {
+  border-top: 1px dashed rgba(120, 160, 210, 0.3);
+  margin: 6px 0;
+}
+.lb-myrank {
+  text-align: center;
+  margin-top: 8px;
+  font-size: clamp(11px, 3.2vw, 13px);
+  letter-spacing: 2px;
+  color: #9fb4d8;
+}
+.lb-myrank b { color: #ffe066; }

@@ -27,3 +27,11 @@ export function getMuted() {
 export function setMuted(muted) {
   write(STORAGE_KEYS.muted, muted ? '1' : '0');
 }
+
+export function getPseudo() {
+  return read(STORAGE_KEYS.pseudo, '');
+}
+
+export function setPseudo(pseudo) {
+  write(STORAGE_KEYS.pseudo, pseudo);
+}

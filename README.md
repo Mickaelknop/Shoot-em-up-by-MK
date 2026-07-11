@@ -29,6 +29,9 @@ N'importe quel hébergement statique fonctionne (GitHub Pages, Netlify, etc.).
 - Bonus : **W** (arme +, 5 niveaux), **S** (bouclier), **1** (vie), **P** (points).
 - Score, meilleur score persistant (`localStorage`), écrans titre / pause / game over /
   victoire, pause automatique quand l'onglet passe en arrière-plan.
+- **Classement mondial en ligne** (Supabase) : saisie d'un pseudo avant la partie,
+  soumission automatique du score en fin de partie, affichage du **Top 10 + rang
+  personnel** sur les écrans titre, game over et victoire.
 - Effets : particules, secousses d'écran, textes flottants, fond défilant + étoiles
   en parallaxe ; sons et musiques chiptune 100 % synthétisés en Web Audio (aucun
   fichier audio).
@@ -52,7 +55,9 @@ js/
   input.js          Pointer events (tactile + souris) et clavier
   audio.js          SFX synthétisés + séquenceur musical Web Audio
   assets.js         Chargeur d'images
-  storage.js        Persistance localStorage
+  storage.js        Persistance localStorage (meilleur score, pseudo, audio)
+  config.js         Config Supabase du classement (URL + clé anon publique)
+  leaderboard.js    Accès REST au classement en ligne (fetch, zéro dépendance)
 assets/             Sprites détourés (générés par IA via fal.ai / GPT-image-2)
 assets/raw/         Images sources brutes (fond magenta) — non chargées par le jeu
 ```
@@ -70,6 +75,27 @@ assets/raw/         Images sources brutes (fond magenta) — non chargées par l
   dans `Game.applyPowerup()`.
 - **Nouveau boss** : ajouter une définition dans `constants.js` et ses patterns
   dans `boss.js`.
+
+## Classement en ligne (Supabase)
+
+Le classement utilise **Supabase** (Postgres + API REST PostgREST), sans backend à
+maintenir et sans dépendance JS (appels via `fetch`).
+
+- **Table** : `nova_striker_scores (id, pseudo, score, created_at)`, isolée dans le
+  projet Supabase `KingofGolf` (org MikaHome), sans lien avec les autres tables.
+- **Sécurité (RLS)** : la clé `anon` présente dans `config.js` est **publique par
+  conception** — elle est faite pour être exposée dans le navigateur. La protection
+  vient des règles Row-Level Security appliquées côté serveur :
+  - lecture publique du classement ;
+  - insertion publique **validée** (pseudo 2–12 caractères non vides, score borné
+    à `[0 ; 100 000 000]`) ;
+  - **aucune** règle UPDATE/DELETE → modification et suppression impossibles.
+  - La clé `service_role` (secrète) n'est jamais utilisée côté client.
+- **Vérifié** : les insertions invalides sont rejetées (HTTP 401) et les tentatives
+  de PATCH/DELETE n'affectent aucune ligne, même en contournant le code du jeu.
+
+Pour pointer vers un autre projet Supabase, il suffit de modifier `SUPABASE_URL` et
+`SUPABASE_ANON_KEY` dans `js/config.js` et d'y créer la même table + policies.
 
 ## Outils de test (dev)
 

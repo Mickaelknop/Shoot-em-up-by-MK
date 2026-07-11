@@ -59,6 +59,7 @@ export const SCORE_GEM = 200;
 export const STORAGE_KEYS = {
   hiscore: 'novastriker_hiscore',
   muted: 'novastriker_muted',
+  pseudo: 'novastriker_pseudo',
 };
 
 // Croissance de la difficulté au fil du niveau (multiplie vitesse/fréquence des tirs)
