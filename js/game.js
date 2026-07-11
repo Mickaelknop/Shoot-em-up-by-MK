@@ -8,7 +8,7 @@ import { Powerups } from './powerups.js';
 import { Particles, FloatingTexts } from './particles.js';
 import { createEnemy, updateEnemy, drawEnemy } from './enemies.js';
 import { Boss } from './boss.js';
-import { buildLevel1, LevelRunner } from './level.js';
+import { LEVELS, LevelRunner } from './level.js';
 import { sfx, playMusic, stopMusic } from './audio.js';
 import { getHiscore, setHiscore } from './storage.js';
 
@@ -36,6 +36,8 @@ export class Game {
     this.boss = null;
     this.pendingSpawns = [];      // [{at, fn}] — spawns différés du script de niveau
     this.level = null;
+    this.levelIndex = 0;          // niveau sélectionné (index dans LEVELS)
+    this.levelDef = LEVELS[0];
 
     this.score = 0;
     this.shakeT = 0;
@@ -56,6 +58,10 @@ export class Game {
   resize() {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
+    // Fenêtre masquée ou en transition (clavier virtuel, rotation…) :
+    // dimensions nulles => on conserve la géométrie précédente pour ne pas
+    // corrompre le jeu avec des NaN.
+    if (!(vw > 0) || !(vh > 0)) return;
     // Échelle : remplit la largeur en portrait ; sur écran large (desktop),
     // s'adapte à la hauteur et centre la zone de jeu (letterbox).
     this.viewScale = Math.min(vw / GAME_W, vh / MIN_H);
@@ -83,7 +89,14 @@ export class Game {
   }
 
   /* ---------- machine à états ---------- */
-  startGame() {
+  // Sélection du niveau depuis l'écran titre (change aussi le fond en aperçu).
+  selectLevel(index) {
+    this.levelIndex = Math.max(0, Math.min(LEVELS.length - 1, index));
+    this.levelDef = LEVELS[this.levelIndex];
+  }
+
+  startGame(levelIndex = this.levelIndex) {
+    this.selectLevel(levelIndex);
     this.state = 'playing';
     this.score = 0;
     this.levelTime = 0;
@@ -95,9 +108,13 @@ export class Game {
     this.enemyBullets.clear();
     this.powerups.items = [];
     this.player = new Player(this);
-    this.level = new LevelRunner(this, buildLevel1(this));
+    this.level = new LevelRunner(this, this.levelDef.build(this));
     this.warningT = 0;
-    playMusic('stage');
+    this.bossScene = false;   // décor spécial (station + flotte) à la scène du boss
+    // Style visuel des tirs selon le niveau (lasers rouges/verts pour le niveau SW)
+    this.playerBullets.style = this.levelDef.bolt || 'default';
+    this.enemyBullets.style = this.levelDef.enemyBolt || 'default';
+    playMusic(this.levelDef.song);
     this.ui.showScreen(null);
     this.ui.setPauseVisible(true);
   }
@@ -112,7 +129,7 @@ export class Game {
   resume() {
     if (this.state !== 'paused') return;
     this.state = 'playing';
-    playMusic(this.boss && this.boss.isFinal ? 'boss' : 'stage');
+    playMusic(this.boss && this.boss.isFinal ? 'boss' : this.levelDef.song);
     this.ui.showScreen(null);
   }
 
@@ -171,8 +188,10 @@ export class Game {
   startBoss(isFinal) {
     this.warningT = 2.6;
     sfx.bossWarning();
+    // Le décor de boss (station + flotte impériale) apparaît dès l'alerte du boss final.
+    if (isFinal && this.levelDef.bossBg) this.bossScene = true;
     setTimeoutSafe(this, 2.2, () => {
-      this.boss = new Boss(this, isFinal);
+      this.boss = new Boss(this, isFinal, isFinal ? this.levelDef.boss : this.levelDef.midboss);
       if (isFinal) playMusic('boss');
     });
   }
@@ -186,7 +205,7 @@ export class Game {
       this.boss = null;
       this.powerups.spawn(boss.x - 30, boss.y, 'W');
       this.powerups.spawn(boss.x + 30, boss.y, 'S');
-      playMusic('stage');
+      playMusic(this.levelDef.song);
     }
   }
 
@@ -375,13 +394,22 @@ export class Game {
       ctx.translate((Math.random() - 0.5) * a, (Math.random() - 0.5) * a);
     }
 
-    // Fond défilant
-    const bg = images.bg;
-    const bgH = this.w * (bg.height / bg.width);
-    const off = this.bgScroll % bgH;
-    ctx.drawImage(bg, 0, off - bgH, this.w, bgH + 1);
-    ctx.drawImage(bg, 0, off, this.w, bgH + 1);
-    if (off + bgH < this.h) ctx.drawImage(bg, 0, off + bgH, this.w, bgH + 1);
+    // Décor de la scène du boss (station + flotte) : image de couverture fixe,
+    // sinon fond défilant neutre du niveau.
+    const bossBg = this.bossScene ? images[this.levelDef.bossBg] : null;
+    if (bossBg) {
+      const s = Math.max(this.w / bossBg.width, this.h / bossBg.height);
+      const dw = bossBg.width * s, dh = bossBg.height * s;
+      const drift = Math.sin(this.time * 0.15) * 8;
+      ctx.drawImage(bossBg, (this.w - dw) / 2, (this.h - dh) / 2 + drift, dw, dh);
+    } else {
+      const bg = images[this.levelDef.bg];
+      const bgH = this.w * (bg.height / bg.width);
+      const off = this.bgScroll % bgH;
+      ctx.drawImage(bg, 0, off - bgH, this.w, bgH + 1);
+      ctx.drawImage(bg, 0, off, this.w, bgH + 1);
+      if (off + bgH < this.h) ctx.drawImage(bg, 0, off + bgH, this.w, bgH + 1);
+    }
 
     // Étoiles parallaxe
     for (const s of this.stars) {
@@ -422,7 +450,7 @@ export class Game {
     ctx.fillText('HI ' + Math.max(this.hiscore, this.score), this.w / 2 + 20, 23);
 
     // Vies (mini vaisseaux) + niveau d'arme, en bas à gauche
-    const img = images.player;
+    const img = images[this.levelDef.playerImg] || images.player;
     for (let i = 0; i < this.player.lives; i++) {
       ctx.globalAlpha = 0.9;
       ctx.drawImage(img, 10 + i * 26, this.h - 38, 20, 20 * (img.height / img.width));

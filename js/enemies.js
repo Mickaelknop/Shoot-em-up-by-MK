@@ -1,5 +1,6 @@
-// Ennemis standards : drone (sinusoïde), chasseur (piqué), lourd (barrage).
-// Chaque ennemi = type + comportement paramétré, pour rester facilement extensible.
+// Ennemis standards. Chaque type (constants.js) référence un `behavior`
+// réutilisable : 'drone' (sinusoïde), 'fighter' (piqué guidé), 'heavy' (barrage).
+// Ajouter un ennemi = une entrée dans ENEMY_TYPES + un sprite, sans toucher ici.
 import { ENEMY_TYPES, difficulty } from './constants.js';
 import { images } from './assets.js';
 import { aimAt, fireFan } from './bullets.js';
@@ -41,7 +42,7 @@ export function updateEnemy(e, dt, game) {
   const diff = difficulty(game.levelTime);
   const speed = e.def.speed * e.speedMul * (0.85 + 0.3 * (diff - 1));
 
-  switch (e.type) {
+  switch (e.def.behavior) {
     case 'drone':
       e.y += speed * dt;
       e.x = e.baseX + Math.sin(e.t * e.freq + e.dir) * e.amp;
@@ -83,7 +84,7 @@ export function updateEnemy(e, dt, game) {
 function enemyFire(e, game, diff) {
   const bs = e.def.bulletSpeed * diff;
   const p = game.player;
-  switch (e.type) {
+  switch (e.def.behavior) {
     case 'drone': {
       const v = aimAt(e.x, e.y, p.x, p.y, bs);
       game.enemyBullets.fire(e.x, e.y + 12, v.vx, v.vy);

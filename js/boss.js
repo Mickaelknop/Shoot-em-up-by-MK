@@ -5,10 +5,10 @@ import { sfx } from './audio.js';
 import { aimAt, fireRing, fireFan } from './bullets.js';
 
 export class Boss {
-  constructor(game, isFinal) {
+  constructor(game, isFinal, def) {
     this.game = game;
     this.isFinal = isFinal;
-    this.def = isFinal ? BOSS : MIDBOSS;
+    this.def = def || (isFinal ? BOSS : MIDBOSS);
     this.maxHp = this.def.hp;
     this.hp = this.maxHp;
     this.x = game.w / 2;
@@ -167,6 +167,6 @@ export class Boss {
     ctx.fillStyle = '#ffccd5';
     ctx.font = 'bold 11px "Courier New", monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(this.isFinal ? 'BYDO CORE' : 'GARDIEN', x, y - 6);
+    ctx.fillText(this.def.name || (this.isFinal ? 'BOSS' : 'GARDIEN'), x, y - 6);
   }
 }

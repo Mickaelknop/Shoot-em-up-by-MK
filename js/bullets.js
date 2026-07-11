@@ -17,6 +17,30 @@ function makeGlowSprite(size, inner, outer) {
 let playerBoltSprite = null;
 let enemyBallSprite = null;
 let enemyBallSprite2 = null;
+let playerBoltSW = null;             // laser rouge « rebelle »
+let enemyBoltGreen = null;           // laser vert « impérial »
+let enemyBoltGreen2 = null;
+
+// Bolt allongé type laser Star Wars : cœur blanc, halo coloré vif.
+function makeLaserBolt(color) {
+  const c = document.createElement('canvas');
+  c.width = 12; c.height = 34;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 0, 34);
+  grad.addColorStop(0, 'rgba(255,255,255,0)');
+  grad.addColorStop(0.5, '#ffffff');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad;
+  g.fillRect(4, 0, 4, 34);           // cœur blanc
+  const halo = g.createLinearGradient(0, 0, 0, 34);
+  halo.addColorStop(0, 'rgba(0,0,0,0)');
+  halo.addColorStop(0.5, color);
+  halo.addColorStop(1, 'rgba(0,0,0,0)');
+  g.globalCompositeOperation = 'destination-over';
+  g.fillStyle = halo;
+  g.fillRect(1, 0, 10, 34);
+  return c;
+}
 
 function ensureSprites() {
   if (playerBoltSprite) return;
@@ -35,12 +59,17 @@ function ensureSprites() {
   playerBoltSprite = c;
   enemyBallSprite = makeGlowSprite(22, '#ff5544', 'rgba(255,40,20,0)');
   enemyBallSprite2 = makeGlowSprite(22, '#ff9944', 'rgba(255,140,20,0)');
+  // Style Star Wars
+  playerBoltSW = makeLaserBolt('#ff3322');
+  enemyBoltGreen = makeGlowSprite(20, '#66ff44', 'rgba(40,220,20,0)');
+  enemyBoltGreen2 = makeGlowSprite(20, '#aaff55', 'rgba(120,240,20,0)');
 }
 
 export class Bullets {
   constructor(isEnemy) {
     this.isEnemy = isEnemy;
     this.pool = [];
+    this.style = 'default';   // 'default' | 'sw' (joueur) | 'green' (ennemis)
     ensureSprites();
   }
 
@@ -72,12 +101,18 @@ export class Bullets {
   }
 
   draw(ctx) {
+    const green = this.style === 'green';
     for (const b of this.pool) {
       if (b.dead) continue;
       if (this.isEnemy) {
-        const s = b.variant ? enemyBallSprite2 : enemyBallSprite;
+        const s = green
+          ? (b.variant ? enemyBoltGreen2 : enemyBoltGreen)
+          : (b.variant ? enemyBallSprite2 : enemyBallSprite);
         const d = b.r * 3.6;
         ctx.drawImage(s, b.x - d / 2, b.y - d / 2, d, d);
+      } else if (this.style === 'sw') {
+        // laser rouge orienté vers le haut (les tirs joueur montent)
+        ctx.drawImage(playerBoltSW, b.x - 6, b.y - 17, 12, 34);
       } else {
         ctx.drawImage(playerBoltSprite, b.x - 6, b.y - 15, 12, 30);
       }

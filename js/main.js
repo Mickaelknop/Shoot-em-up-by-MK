@@ -4,6 +4,7 @@ import { Game } from './game.js';
 import { unlockAudio, toggleMute, isMuted } from './audio.js';
 import { getHiscore, getPseudo, setPseudo } from './storage.js';
 import { validatePseudo, submitScore, fetchTop, fetchRank } from './leaderboard.js';
+import { LEVELS } from './level.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -127,6 +128,34 @@ async function boot() {
 
   const canvas = $('game');
   const game = new Game(canvas, ui);
+
+  /* ---------- Sélecteur de niveau ---------- */
+  const levelSelect = $('level-select');
+  LEVELS.forEach((lv, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'level-btn' + (idx === game.levelIndex ? ' selected' : '');
+    btn.type = 'button';
+    const num = document.createElement('span');
+    num.className = 'lv-num';
+    num.textContent = 'NIVEAU ' + lv.id;
+    const name = document.createElement('span');
+    name.className = 'lv-name';
+    name.textContent = lv.name;
+    const sub = document.createElement('span');
+    sub.className = 'lv-sub';
+    sub.textContent = lv.subtitle;
+    btn.append(num, name, sub);
+    const select = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      game.selectLevel(idx);   // met aussi à jour le fond affiché derrière le titre
+      [...levelSelect.children].forEach((c, i) =>
+        c.classList.toggle('selected', i === idx));
+    };
+    btn.addEventListener('pointerup', select);
+    btn.addEventListener('click', select);
+    levelSelect.appendChild(btn);
+  });
 
   /* ---------- Champ pseudo ---------- */
   const pseudoInput = $('pseudo-input');

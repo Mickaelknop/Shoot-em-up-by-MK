@@ -22,10 +22,18 @@ N'importe quel hébergement statique fonctionne (GitHub Pages, Netlify, etc.).
 
 ## Contenu
 
-- 1 niveau complet scénarisé (~3 min) : vagues progressives, mid-boss « Gardien »,
-  boss final « Bydo Core » à 3 phases.
-- 3 types d'ennemis aux comportements distincts : drone (sinusoïde), chasseur (piqué
-  guidé), croiseur lourd (barrage en éventail).
+- **2 niveaux** complets scénarisés (~3 min chacun), choisis via un **sélecteur de
+  niveau** sur l'écran d'accueil :
+  - **Niveau 1 — Mission Bydo** (style R-Type biomécanique) : vagues progressives,
+    mid-boss « Gardien », boss final « Bydo Core » à 3 phases.
+  - **Niveau 2 — Guerre des étoiles** (hommage) : le joueur pilote un **X-Wing**,
+    affronte chasseurs et intercepteurs impériaux puis un **croiseur impérial** en
+    boss final ; **lasers rouges** (rebelles) et **verts** (impériaux) ; le fond
+    reste neutre pendant le niveau et bascule sur l'**Étoile de la Mort + la flotte
+    impériale** uniquement à la scène du boss.
+- Comportements d'ennemis distincts et réutilisables : drone (sinusoïde), chasseur
+  (piqué guidé), lourd (barrage en éventail) — déclinés par niveau via des sprites
+  différents.
 - Bonus : **W** (arme +, 5 niveaux), **S** (bouclier), **1** (vie), **P** (points).
 - Score, meilleur score persistant (`localStorage`), écrans titre / pause / game over /
   victoire, pause automatique quand l'onglet passe en arrière-plan.
@@ -44,9 +52,9 @@ css/style.css       UI mobile-first (safe-area, tactile)
 js/
   main.js           Point d'entrée : chargement, boucle rAF, liaison des boutons
   constants.js      Équilibrage central (vitesses, HP, scores, difficulté)
-  game.js           Machine à états, collisions, HUD, rendu, spawns
-  level.js          Script du niveau 1 + exécuteur générique (LevelRunner)
-  enemies.js        Types d'ennemis et comportements
+  game.js           Machine à états, collisions, HUD, rendu, décor de boss, spawns
+  level.js          Scripts des niveaux + registre LEVELS + exécuteur (LevelRunner)
+  enemies.js        Comportements d'ennemis génériques (drone/fighter/heavy)
   boss.js           Mid-boss et boss final (phases, patterns, barre de vie)
   player.js         Vaisseau : suivi tactile, armes, bouclier, vies
   bullets.js        Projectiles avec pool d'objets + patterns (anneau, éventail)
@@ -64,9 +72,12 @@ assets/raw/         Images sources brutes (fond magenta) — non chargées par l
 
 ## Étendre le jeu
 
-- **Nouveau niveau** : écrire une fonction `buildLevel2(game)` dans `level.js`
-  (liste d'événements `{wait}`, `{spawn}`, `{waitClear}`, `{midboss}`, `{boss}`)
-  et la passer à `LevelRunner`.
+- **Nouveau niveau** : écrire un `buildLevelN(game)` dans `level.js` (liste
+  d'événements `{wait}`, `{spawn}`, `{waitClear}`, `{midboss}`, `{boss}`) puis
+  ajouter une entrée au registre `LEVELS` (nom, sprite du joueur `playerImg`, fond
+  `bg`, décor de boss optionnel `bossBg`, style de tir `bolt`/`enemyBolt`, musique
+  `song`, mid-boss et boss). Le sélecteur de l'écran d'accueil se construit
+  automatiquement à partir de `LEVELS`.
 - **Nouvel ennemi** : ajouter une entrée dans `ENEMY_TYPES` (`constants.js`),
   son sprite dans `assets.js`, et son comportement dans `enemies.js`
   (`updateEnemy` / `enemyFire`).
