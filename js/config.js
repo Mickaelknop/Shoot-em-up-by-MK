@@ -1,11 +1,10 @@
 // Configuration du classement en ligne (Supabase).
 //
 // NOTE SÉCURITÉ : la clé "anon" ci-dessous est PUBLIQUE par conception.
-// Elle est destinée à être exposée dans le navigateur. La sécurité repose sur
-// les règles RLS (Row-Level Security) appliquées côté serveur par Supabase :
-// lecture publique du classement + insertion validée (pseudo 2–12 car., score
-// borné), aucune modification ni suppression possible. La clé "service_role"
-// (secrète) n'est JAMAIS utilisée ici.
+// Elle est destinée à être exposée dans le navigateur. Les droits SQL/RLS et
+// les fonctions RPC protègent les lignes et la propriété des pseudos. Ils ne
+// peuvent toutefois pas prouver qu'un score calculé côté client est légitime.
+// La clé "service_role" (secrète) n'est JAMAIS utilisée ici.
 
 export const SUPABASE_URL = 'https://oyvyxxqufcofvyjmrlqh.supabase.co';
 export const SUPABASE_ANON_KEY =

@@ -1,0 +1,12 @@
+{
+  "name": "nova-striker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shoot'em up vertical mobile-first jouable dans le navigateur",
+  "scripts": {
+    "test": "node tests/mobile-layout.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.60.0"
+  }
+}

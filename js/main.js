@@ -30,6 +30,7 @@ async function boot() {
   function renderLeaderboard(container, rows, me = {}) {
     const body = container.querySelector('.lb-body');
     body.className = 'lb-body';
+    body.setAttribute('aria-busy', 'false');
     body.textContent = '';
     if (rows === null) {
       body.innerHTML = '<div class="lb-offline">Classement indisponible (hors ligne)</div>';
@@ -90,6 +91,7 @@ async function boot() {
   function setLoading(container) {
     const body = container.querySelector('.lb-body');
     body.className = 'lb-body lb-loading';
+    body.setAttribute('aria-busy', 'true');
     body.textContent = '…';
   }
 
@@ -114,16 +116,18 @@ async function boot() {
     let best = score;
     let status = null;
     if (pseudo && score > 0) {
-      const res = await submitScore(pseudo, score, getOwner(), ship);
+      const owner = getOwner();
+      // Les classements mondial et par niveau sont indépendants : les envoyer
+      // ensemble évite d'allonger inutilement l'écran de chargement de fin.
+      const [res] = await Promise.all([
+        submitScore(pseudo, score, owner, ship),
+        ...game.levelResults.map((r) =>
+          submitLevelScore(pseudo, r.level, r.score, owner, ship)),
+      ]);
       if (res) {
         status = res.status;
         if (typeof res.best === 'number') best = res.best;
       }
-      // Scores par niveau (points marqués dans chaque niveau de la partie).
-      const owner = getOwner();
-      await Promise.all(
-        game.levelResults.map((r) => submitLevelScore(pseudo, r.level, r.score, owner, ship))
-      );
     }
     const [rows, rankInfo] = await Promise.all([fetchTop(), fetchRank(best)]);
     renderLeaderboard(container, rows, {
@@ -173,6 +177,7 @@ async function boot() {
     const btn = document.createElement('button');
     btn.className = 'level-btn' + (idx === game.levelIndex ? ' selected' : '');
     btn.type = 'button';
+    btn.dataset.levelId = String(lv.id);
     const num = document.createElement('span');
     num.className = 'lv-num';
     num.textContent = 'NIVEAU ' + lv.id;
@@ -190,7 +195,6 @@ async function boot() {
       [...levelSelect.children].forEach((c, i) =>
         c.classList.toggle('selected', i === idx));
     };
-    btn.addEventListener('pointerup', select);
     btn.addEventListener('click', select);
     levelSelect.appendChild(btn);
   });
@@ -205,6 +209,7 @@ async function boot() {
     const card = document.createElement('button');
     card.className = 'ship-card' + (idx === game.shipIndex ? ' selected' : '');
     card.type = 'button';
+    card.dataset.shipId = s.id;
     const img = document.createElement('img');
     img.className = 'ship-card-img';
     img.src = 'assets/' + s.card + '.jpg';
@@ -224,7 +229,6 @@ async function boot() {
       [...shipCards.children].forEach((c, i) => c.classList.toggle('selected', i === idx));
       game.startGame();   // lance la partie avec le vaisseau choisi
     };
-    card.addEventListener('pointerup', pick);
     card.addEventListener('click', pick);
     shipCards.appendChild(card);
   });
@@ -237,6 +241,7 @@ async function boot() {
     const b = document.createElement('button');
     b.className = 'lb-tab' + (td.key === currentTab ? ' active' : '');
     b.type = 'button';
+    b.dataset.leaderboardTab = String(td.key);
     b.textContent = td.label;
     const sel = (e) => {
       e.preventDefault();
@@ -246,7 +251,6 @@ async function boot() {
       [...lbTabs.children].forEach((c, i) => c.classList.toggle('active', tabDefs[i].key === currentTab));
       renderTitleLeaderboard();
     };
-    b.addEventListener('pointerup', sel);
     b.addEventListener('click', sel);
     lbTabs.appendChild(b);
   });
@@ -294,17 +298,12 @@ async function boot() {
   /* ---------- Boutons ---------- */
   const bind = (id, fn) => {
     const el = $(id);
-    let lastTap = 0;
     const handler = (e) => {
       e.stopPropagation();
       e.preventDefault();
-      const now = performance.now();
-      if (now - lastTap < 400) return;
-      lastTap = now;
       unlockAudio();
       fn();
     };
-    el.addEventListener('pointerup', handler);
     el.addEventListener('click', handler);
   };
   bind('btn-start', tryStart);
