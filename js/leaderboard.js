@@ -3,11 +3,12 @@
 // douceur (retour null / false) pour ne jamais bloquer le jeu si le réseau
 // est indisponible.
 import {
-  SUPABASE_URL, SUPABASE_ANON_KEY, LEADERBOARD_TABLE, LEADERBOARD_SIZE,
+  SUPABASE_URL, SUPABASE_ANON_KEY, LEADERBOARD_TABLE, LEVELBOARD_TABLE, LEADERBOARD_SIZE,
   PSEUDO_MIN, PSEUDO_MAX, PSEUDO_REGEX,
 } from './config.js';
 
 const REST = `${SUPABASE_URL}/rest/v1/${LEADERBOARD_TABLE}`;
+const REST_LVL = `${SUPABASE_URL}/rest/v1/${LEVELBOARD_TABLE}`;
 const HEADERS = {
   'apikey': SUPABASE_ANON_KEY,
   'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -68,6 +69,32 @@ export async function submitScore(pseudo, score, owner, ship) {
 // Récupère les N meilleurs scores. Renvoie un tableau [{pseudo, score, ship}] ou null.
 export async function fetchTop(limit = LEADERBOARD_SIZE) {
   const url = `${REST}?select=pseudo,score,ship&order=score.desc,created_at.asc&limit=${limit}`;
+  const t = withTimeout(8000);
+  try {
+    const res = await fetch(url, { headers: HEADERS, signal: t.signal });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  } finally {
+    t.done();
+  }
+}
+
+// Soumet le score marqué DANS un niveau précis (points de ce niveau seul).
+// Une ligne par (pseudo, niveau), meilleur conservé. Renvoie { status, best } ou null.
+export async function submitLevelScore(pseudo, level, score, owner, ship) {
+  const v = validatePseudo(pseudo);
+  if (!v.ok) return null;
+  const s = Math.max(0, Math.min(100000000, Math.round(score)));
+  return await rpc('nova_submit_level_score',
+    { p_pseudo: v.value, p_level: level, p_score: s, p_owner: owner, p_ship: ship || null });
+}
+
+// Meilleurs scores d'un niveau donné. Renvoie [{pseudo, score, ship}] ou null.
+export async function fetchTopLevel(level, limit = LEADERBOARD_SIZE) {
+  const url = `${REST_LVL}?select=pseudo,score,ship&level=eq.${level}` +
+    `&order=score.desc,created_at.asc&limit=${limit}`;
   const t = withTimeout(8000);
   try {
     const res = await fetch(url, { headers: HEADERS, signal: t.signal });

@@ -5,7 +5,9 @@
 //   { waitClear: true }          — attendre que l'écran soit vide d'ennemis
 //   { midboss / boss: true }     — déclencher un boss (avec alerte)
 // Ajouter un niveau = écrire un buildLevelN + une entrée dans LEVELS.
-import { MIDBOSS, BOSS, MIDBOSS2, BOSS2 } from './constants.js';
+import {
+  MIDBOSS, BOSS, MIDBOSS2, BOSS2, MIDBOSS3, BOSS3, POWERUP_SKIN_BEDROOM,
+} from './constants.js';
 
 /* ---------- Aides de spawn génériques (type d'ennemi en paramètre) ---------- */
 
@@ -173,6 +175,75 @@ export function buildLevel2(game) {
   ];
 }
 
+/* ---------- Niveau 3 : Bedroom Dimension ---------- */
+// Les meubles de la maison ont pris vie dans une dimension parallèle.
+// Le meilleur guerrier gagne le droit de dormir dans le grand lit.
+// Oreillers ninjas, chaussettes mutantes, réveils explosifs, lits furieux,
+// armoires carnivores, aspirateurs kamikazes, couettes fantômes.
+
+export function buildLevel3(game) {
+  return [
+    { wait: 1.6 },
+    // — Réveil en douceur : chaussettes perdues et oreillers ninjas —
+    { spawn: () => arcOf(game, 'sock', 5) },
+    { wait: 4.5 },
+    { spawn: () => { lineOf(game, 'pillow', 3, 'left', { amp: 70, gap: 0.45 }); } },
+    { wait: 4 },
+    { spawn: () => carrier(game, 'pillow', 0.5, 'W', { amp: 30 }) },
+    { wait: 3.5 },
+
+    // — Les réveils sonnent —
+    { spawn: () => diveOf(game, 'alarm', 3) },
+    { wait: 5 },
+    { spawn: () => { arcOf(game, 'sock', 6, { speedMul: 1.05 }); diveOf(game, 'vacuum', 2); } },
+    { wait: 6 },
+    { spawn: () => { lineOf(game, 'sock', 6, 'center', { amp: 150, gap: 0.3 }); diveOf(game, 'pillow', 2); } },
+    { wait: 5.5 },
+
+    // — Premier meuble lourd —
+    { spawn: () => { heavyAt(game, 'bedmob', 0.5, { drop: 'W' }); arcOf(game, 'sock', 4, { speedMul: 1.1 }); } },
+    { wait: 9.5 },
+    { spawn: () => { arcOf(game, 'duvet', 3); diveOf(game, 'pillow', 3, { speedMul: 1.05 }); } },
+    { wait: 6 },
+    { spawn: () => { heavyAt(game, 'wardrobe', 0.3); heavyAt(game, 'bedmob', 0.7); } },
+    { wait: 9 },
+    { spawn: () => { diveOf(game, 'alarm', 2); diveOf(game, 'vacuum', 2, { speedMul: 1.05 }); } },
+    { wait: 5 },
+    { spawn: () => carrier(game, 'pillow', 0.35, 'S') },
+    { wait: 4 },
+    { waitClear: true },
+    { wait: 1.5 },
+
+    // — MID-BOSS : la machine à café démoniaque —
+    { midboss: true },
+    { waitClear: true },
+    { wait: 3 },
+
+    // — Insomnie totale —
+    { spawn: () => { arcOf(game, 'sock', 7, { speedMul: 1.2 }); diveOf(game, 'vacuum', 2, { speedMul: 1.15 }); } },
+    { wait: 6 },
+    { spawn: () => carrier(game, 'sock', 0.5, 'W') },
+    { wait: 2.5 },
+    { spawn: () => { lineOf(game, 'pillow', 5, 'left', { amp: 120, speedMul: 1.2 }); lineOf(game, 'pillow', 5, 'right', { amp: 120, speedMul: 1.2, gap: 0.4 }); } },
+    { wait: 6.5 },
+    { spawn: () => { diveOf(game, 'alarm', 3); arcOf(game, 'duvet', 3, { speedMul: 1.1 }); } },
+    { wait: 6 },
+    { spawn: () => { heavyAt(game, 'wardrobe', 0.5, { hpMul: 1.3 }); diveOf(game, 'pillow', 3, { speedMul: 1.2 }); } },
+    { wait: 9 },
+    { spawn: () => { diveOf(game, 'vacuum', 4, { speedMul: 1.25 }); arcOf(game, 'sock', 5, { speedMul: 1.25 }); } },
+    { wait: 6 },
+    { spawn: () => carrier(game, 'duvet', 0.65, 'S') },
+    { wait: 3 },
+    { spawn: () => { heavyAt(game, 'bedmob', 0.22, { hpMul: 1.25 }); heavyAt(game, 'wardrobe', 0.78, { hpMul: 1.25 }); diveOf(game, 'alarm', 3); } },
+    { wait: 11 },
+    { waitClear: true },
+    { wait: 2 },
+
+    // — BOSS FINAL : « Tu ne dormiras jamais ici ! » —
+    { boss: true },
+  ];
+}
+
 /* ---------- Registre des niveaux ---------- */
 
 export const LEVELS = [
@@ -203,6 +274,23 @@ export const LEVELS = [
     build: buildLevel2,
     midboss: MIDBOSS2,
     boss: BOSS2,
+  },
+  {
+    id: 3,
+    name: 'BEDROOM DIMENSION',
+    subtitle: 'Le grand lit se mérite',
+    playerImg: 'player',
+    bg: null,                // pas d'image : fond procédural
+    bgFx: 'psychedelic',     // tunnel 4e dimension animé en code
+    bossBg: null,            // le fond s'emballe tout seul au boss
+    bolt: 'default',
+    enemyBolt: 'default',
+    song: 'stage3',
+    build: buildLevel3,
+    midboss: MIDBOSS3,
+    boss: BOSS3,
+    bonusPool: 'bedroom',            // drops incluant smart bomb + masque
+    powerupSkin: POWERUP_SKIN_BEDROOM, // bonus affichés en émojis à thème
   },
 ];
 

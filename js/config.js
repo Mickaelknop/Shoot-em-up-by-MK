@@ -12,6 +12,7 @@ export const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95dnl4eHF1ZmNvZnZ5am1ybHFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyODA5NjcsImV4cCI6MjA5ODg1Njk2N30.9SC73rWVMA2ziZLF9mGiYdCv6rLMLpPd162I9RYRdrE';
 
 export const LEADERBOARD_TABLE = 'nova_striker_scores';
+export const LEVELBOARD_TABLE = 'nova_striker_level_scores';
 export const LEADERBOARD_SIZE = 10;
 
 // Contraintes de pseudo (doivent rester cohérentes avec les contraintes SQL).

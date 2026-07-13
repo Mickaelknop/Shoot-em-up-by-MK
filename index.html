@@ -36,8 +36,34 @@
     <button id="btn-start" class="big-btn">JOUER</button>
     <div class="hint">Glissez le doigt pour piloter · Tir automatique</div>
     <div class="leaderboard" id="title-leaderboard">
-      <div class="lb-title">CLASSEMENT MONDIAL</div>
+      <div class="lb-head">
+        <div class="lb-title" id="lb-title-text">CLASSEMENT MONDIAL</div>
+        <button id="btn-lb-info" class="lb-info-btn" type="button" aria-label="Comment marchent les classements ?">?</button>
+      </div>
+      <div class="lb-tabs" id="lb-tabs"></div>
       <div class="lb-body lb-loading">…</div>
+    </div>
+  </div>
+
+  <!-- Modale d'explication des classements -->
+  <div id="lb-info-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-title">LES CLASSEMENTS</div>
+      <div class="modal-body">
+        <p><b>🌍 Classement mondial</b> — le score <b>total d'une partie</b>. Les
+        niveaux <b>s'enchaînent</b> : battre le boss d'un niveau lance
+        automatiquement le suivant et le score <b>se cumule</b>. Partir du
+        <b>niveau 1</b> permet donc le plus gros total (1 → 2 → 3). Partir d'un
+        niveau plus avancé joue moins de niveaux. Une seule ligne par pseudo :
+        ton <b>meilleur total</b>.</p>
+        <p><b>🎯 Classement par niveau</b> — les <b>points marqués dans ce niveau
+        précis</b>, peu importe où ta partie a commencé. Comparaison <b>équitable</b>
+        stage par stage. Une ligne par pseudo et par niveau : ton meilleur score
+        sur ce niveau.</p>
+        <p><b>🚀</b> L'icône à côté d'un pseudo indique le <b>vaisseau</b> utilisé.
+        Un pseudo t'appartient dès que tu l'enregistres.</p>
+      </div>
+      <button id="btn-lb-info-close" class="big-btn" type="button">OK</button>
     </div>
   </div>
 

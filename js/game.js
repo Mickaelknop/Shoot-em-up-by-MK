@@ -36,8 +36,12 @@ export class Game {
     this.boss = null;
     this.pendingSpawns = [];      // [{at, fn}] — spawns différés du script de niveau
     this.level = null;
-    this.levelIndex = 0;          // niveau sélectionné (index dans LEVELS)
+    this.levelIndex = 0;          // niveau en cours (index dans LEVELS)
     this.levelDef = LEVELS[0];
+    this.startLevelIndex = 0;     // niveau de départ de la partie (pour REJOUER)
+    this.levelBannerT = 0;        // bannière « NIVEAU X » en début de niveau
+    this.levelStartScore = 0;     // score au début du niveau courant
+    this.levelResults = [];       // [{level, score}] points marqués par niveau
     this.shipIndex = 0;           // vaisseau choisi (index dans SHIPS) — cosmétique
     this.shipDef = SHIPS[0];
 
@@ -103,10 +107,35 @@ export class Game {
     this.shipDef = SHIPS[this.shipIndex];
   }
 
+  // Démarre une nouvelle partie au niveau choisi. Les niveaux suivants
+  // s'enchaînent ensuite automatiquement (voir onBossKilled → nextLevel).
   startGame(levelIndex = this.levelIndex) {
     this.selectLevel(levelIndex);
-    this.state = 'playing';
+    this.startLevelIndex = this.levelIndex;   // point de reprise pour REJOUER
     this.score = 0;
+    this.levelResults = [];                   // remis à zéro à chaque nouvelle partie
+    this._beginLevel(true);
+  }
+
+  // Enregistre les points marqués dans le niveau courant (score de ce niveau
+  // seul = cumul actuel moins le score d'entrée). Appelé à la fin d'un niveau
+  // (boss final abattu) ou à la mort du joueur.
+  recordLevelResult() {
+    const delta = this.score - this.levelStartScore;
+    if (delta > 0) this.levelResults.push({ level: this.levelDef.id, score: delta });
+  }
+
+  // Passe au niveau suivant en conservant le score cumulé et l'état du vaisseau
+  // (vies, arme, bouclier). Appelé après la mort du boss final d'un niveau.
+  nextLevel() {
+    this.selectLevel(this.levelIndex + 1);
+    this._beginLevel(false);
+  }
+
+  // Prépare et lance le niveau courant. `freshPlayer` : true = nouveau vaisseau
+  // (début de partie), false = on garde vies/arme/bouclier du niveau précédent.
+  _beginLevel(freshPlayer) {
+    this.state = 'playing';
     this.levelTime = 0;
     this.enemies = [];
     this.boss = null;
@@ -115,11 +144,21 @@ export class Game {
     this.playerBullets.clear();
     this.enemyBullets.clear();
     this.powerups.items = [];
-    this.player = new Player(this);
+    if (freshPlayer) {
+      this.player = new Player(this);
+    } else {
+      const keep = { lives: this.player.lives, weapon: this.player.weapon, shield: this.player.shield };
+      this.player = new Player(this);
+      this.player.lives = keep.lives;
+      this.player.weapon = keep.weapon;
+      this.player.shield = keep.shield;
+    }
     this.level = new LevelRunner(this, this.levelDef.build(this));
     this.warningT = 0;
     this.bossScene = false;   // décor spécial (station + flotte) à la scène du boss
-    // Style visuel des tirs selon le niveau (lasers rouges/verts pour le niveau SW)
+    this.levelBannerT = 2.4;  // annonce « NIVEAU X »
+    this.levelStartScore = this.score;   // base pour le score de ce niveau
+    // Style visuel des tirs selon le niveau (lasers verts/rouges pour le niveau SW)
     this.playerBullets.style = this.levelDef.bolt || 'default';
     this.enemyBullets.style = this.levelDef.enemyBolt || 'default';
     playMusic(this.levelDef.song);
@@ -156,6 +195,7 @@ export class Game {
   onPlayerDeath() {
     stopMusic();
     this.ui.setPauseVisible(false);
+    this.recordLevelResult();   // points partiels du niveau où le joueur est mort
     const record = this.commitScore();
     setTimeout(() => {
       this.state = 'gameover';
@@ -208,7 +248,13 @@ export class Game {
     this.addScore(boss.def.score, boss.x, boss.y);
     if (boss.isFinal) {
       this.boss = null;
-      this.victory();
+      this.recordLevelResult();   // points de ce niveau (boss inclus)
+      // Niveau suivant s'il existe : enchaînement + score cumulé. Sinon victoire.
+      if (this.levelIndex + 1 < LEVELS.length) {
+        this.nextLevel();
+      } else {
+        this.victory();
+      }
     } else {
       this.boss = null;
       this.powerups.spawn(boss.x - 30, boss.y, 'W');
@@ -260,6 +306,7 @@ export class Game {
       }
 
       if (this.warningT > 0) this.warningT -= dt;
+      if (this.levelBannerT > 0) this.levelBannerT -= dt;
       if (this.player.alive) this.player.update(dt);
 
       for (const e of this.enemies) updateEnemy(e, dt, this);
@@ -346,11 +393,12 @@ export class Game {
   killEnemy(e) {
     e.dead = true;
     this.addScore(e.score, e.x, e.y);
-    this.particles.explosion(e.x, e.y, e.type === 'heavy' ? 1.8 : 1);
+    this.particles.explosion(e.x, e.y, e.def.behavior === 'heavy' ? 1.8 : 1);
     sfx.explosion();
-    if (e.type === 'heavy') this.shake(0.25, 6);
+    if (e.def.behavior === 'heavy') this.shake(0.25, 6);
     if (e.drop) this.powerups.spawn(e.x, e.y, e.drop);
-    else if (e.type === 'heavy' && Math.random() < 0.65) this.powerups.spawnRandom(e.x, e.y);
+    else if (e.def.behavior === 'heavy' && Math.random() < 0.65)
+      this.powerups.spawnRandom(e.x, e.y, this.levelDef.bonusPool);
     else if (e.dropGem && Math.random() < 0.35) this.powerups.spawn(e.x, e.y, 'P');
   }
 
@@ -380,6 +428,28 @@ export class Game {
         this.addScore(SCORE_GEM, pu.x, pu.y);
         sfx.powerup();
         break;
+      case 'B': {
+        // Smart bomb (télécommande) : efface tous les tirs ennemis
+        // et inflige des dégâts à tout ce qui est à l'écran.
+        this.enemyBullets.clear();
+        for (const e of this.enemies) {
+          if (e.dead) continue;
+          e.hp -= 6;
+          e.flash = 0.1;
+          if (e.hp <= 0) this.killEnemy(e);
+        }
+        if (this.boss && this.boss.entered) this.boss.hit(10);
+        this.texts.add(pu.x, pu.y, 'ZAP !', '#ff5e9c');
+        this.shake(0.5, 12);
+        sfx.smartBomb();
+        break;
+      }
+      case 'M':
+        // Masque de sommeil : invincibilité courte
+        p.invincible = Math.max(p.invincible, 6);
+        this.texts.add(pu.x, pu.y, 'Zzz… INVINCIBLE', '#b48cff');
+        sfx.extraLife();
+        break;
     }
   }
 
@@ -403,9 +473,12 @@ export class Game {
     }
 
     // Décor de la scène du boss (station + flotte) : image de couverture fixe,
-    // sinon fond défilant neutre du niveau.
+    // sinon fond défilant neutre du niveau. Le niveau Bedroom Dimension utilise
+    // un fond psychédélique 100 % procédural (tunnel animé).
     const bossBg = this.bossScene ? images[this.levelDef.bossBg] : null;
-    if (bossBg) {
+    if (this.levelDef.bgFx === 'psychedelic') {
+      this.drawPsychedelicBg(ctx);
+    } else if (bossBg) {
       const s = Math.max(this.w / bossBg.width, this.h / bossBg.height);
       const dw = bossBg.width * s, dh = bossBg.height * s;
       const drift = Math.sin(this.time * 0.15) * 8;
@@ -431,7 +504,7 @@ export class Game {
     const inGame = this.state === 'playing' || this.state === 'paused' ||
                    this.state === 'dying' || this.state === 'won';
     if (inGame) {
-      this.powerups.draw(ctx, this.time);
+      this.powerups.draw(ctx, this.time, this.levelDef.powerupSkin || null);
       for (const e of this.enemies) drawEnemy(e, ctx);
       if (this.boss) this.boss.draw(ctx, this.time);
       this.enemyBullets.draw(ctx);
@@ -443,6 +516,82 @@ export class Game {
     } else {
       this.particles.draw(ctx);
     }
+  }
+
+  // Fond « quatrième dimension » : tunnel d'anneaux arc-en-ciel qui foncent vers
+  // la caméra, rayons en rotation, objets du quotidien flottants. S'emballe
+  // pendant les phases avancées du boss final (« le fond devient fou »).
+  drawPsychedelicBg(ctx) {
+    const t = this.time;
+    const w = this.w, h = this.h;
+    const boss = this.boss && this.boss.isFinal && this.boss.entered ? this.boss : null;
+    const mad = boss ? (boss.phase >= 3 ? 2.4 : 1.6) : 1;
+
+    // Base sombre violette
+    ctx.fillStyle = '#0b0418';
+    ctx.fillRect(-30, -30, w + 60, h + 60);
+
+    // Centre du tunnel, légèrement flottant
+    const cx = w / 2 + Math.sin(t * 0.6) * 46 * mad;
+    const cy = h * 0.42 + Math.cos(t * 0.45) * 34 * mad;
+    const maxR = Math.hypot(w, h) * 0.72;
+
+    // Rayons en rotation (spirale lumineuse)
+    ctx.save();
+    ctx.globalAlpha = 0.16;
+    ctx.lineWidth = 3;
+    for (let k = 0; k < 10; k++) {
+      const a = t * 0.5 * mad + (k / 10) * Math.PI * 2;
+      ctx.strokeStyle = `hsl(${(k * 36 + t * 50 * mad) % 360}, 95%, 62%)`;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a) * maxR, cy + Math.sin(a) * maxR);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Anneaux du tunnel : progression quadratique = effet de vitesse 3D
+    for (let i = 0; i < 14; i++) {
+      const p = ((i / 14) + t * 0.14 * mad) % 1;
+      const r = p * p * maxR + 4;
+      const hue = (i * 46 + t * 70 * mad) % 360;
+      ctx.globalAlpha = 0.10 + p * 0.30;
+      ctx.strokeStyle = `hsl(${hue}, 100%, ${52 + p * 18}%)`;
+      ctx.lineWidth = 2 + p * 22;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    // Objets de la chambre en apesanteur (déco, jamais dangereux)
+    if (!this.bedroomDeco) {
+      const set = ['🛏️', '🧦', '⏰', '🪥', '☕', '📚', '👟', '🧸', '🎮', '🥐', '🧺', '👕'];
+      this.bedroomDeco = set.map((emoji, i) => ({
+        emoji,
+        x: (i * 137) % 440 + 20,
+        y0: (i * 263) % 900,
+        speed: 26 + (i * 53) % 60,
+        size: 22 + (i * 29) % 22,
+        rot: 0.3 + (i % 5) * 0.22,
+        ph: i * 1.7,
+      }));
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (const d of this.bedroomDeco) {
+      const y = (d.y0 + t * d.speed * mad) % (h + 90) - 45;
+      const x = d.x + Math.sin(t * 0.8 + d.ph) * 26;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(Math.sin(t * d.rot + d.ph) * 0.6);
+      ctx.globalAlpha = 0.5;
+      ctx.font = `${d.size}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
+      ctx.fillText(d.emoji, 0, 0);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    ctx.textBaseline = 'alphabetic';
   }
 
   drawHUD(ctx) {
@@ -477,6 +626,20 @@ export class Game {
       ctx.fillStyle = '#ff3344';
       ctx.font = 'bold 34px "Courier New", monospace';
       ctx.fillText('⚠ WARNING ⚠', this.w / 2, this.h * 0.4);
+    }
+
+    // Bannière « NIVEAU X » en début de niveau (fondu sortant)
+    if (this.levelBannerT > 0) {
+      const a = Math.min(1, this.levelBannerT / 0.5);
+      ctx.textAlign = 'center';
+      ctx.globalAlpha = a;
+      ctx.fillStyle = '#9fe8ff';
+      ctx.font = 'bold 20px "Courier New", monospace';
+      ctx.fillText('NIVEAU ' + this.levelDef.id, this.w / 2, this.h * 0.36);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 26px "Courier New", monospace';
+      ctx.fillText(this.levelDef.name, this.w / 2, this.h * 0.36 + 30);
+      ctx.globalAlpha = 1;
     }
   }
 }

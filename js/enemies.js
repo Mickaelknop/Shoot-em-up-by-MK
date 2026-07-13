@@ -1,9 +1,12 @@
 // Ennemis standards. Chaque type (constants.js) référence un `behavior`
-// réutilisable : 'drone' (sinusoïde), 'fighter' (piqué guidé), 'heavy' (barrage).
+// réutilisable : 'drone' (sinusoïde), 'fighter' (piqué guidé), 'heavy' (barrage),
+// 'kamikaze' (fonce sur le joueur en zigzag, aspire les bonus, ne tire pas),
+// 'bomber' (descend, sonne, explose en anneau de projectiles).
 // Ajouter un ennemi = une entrée dans ENEMY_TYPES + un sprite, sans toucher ici.
 import { ENEMY_TYPES, difficulty } from './constants.js';
 import { images } from './assets.js';
-import { aimAt, fireFan } from './bullets.js';
+import { aimAt, fireFan, fireRing } from './bullets.js';
+import { sfx } from './audio.js';
 
 let idCounter = 0;
 
@@ -29,8 +32,10 @@ export function createEnemy(type, x, y, opts = {}) {
     amp: opts.amp ?? 70,
     freq: opts.freq ?? 1.6,
     speedMul: opts.speedMul ?? 1,
-    stopY: opts.stopY ?? null,        // (lourd) altitude de mise en position
+    stopY: opts.stopY ?? null,        // (lourd/bomber) altitude de mise en position
     leaveAfter: opts.leaveAfter ?? null,
+    fuse: def.fuse ?? null,           // (bomber) délai avant explosion
+    rang: false,                      // (bomber) sonnerie déjà jouée
   };
 }
 
@@ -66,6 +71,40 @@ export function updateEnemy(e, dt, game) {
         e.x += Math.sin(e.t * 0.8) * 30 * dt;
       }
       break;
+
+    case 'kamikaze': {
+      // Fonce vers le bas en se recalant sur le joueur, avec zigzag.
+      e.y += speed * dt * 0.9;
+      const pull = Math.max(-150, Math.min(150, (game.player.x - e.x) * 1.4));
+      e.x += pull * dt + Math.sin(e.t * e.def.zigFreq) * e.def.zigAmp * dt;
+      // Aspire les bonus proches (gag de l'aspirateur)
+      for (const pu of game.powerups.items) {
+        const dx = pu.x - e.x, dy = pu.y - e.y;
+        if (dx * dx + dy * dy < 60 * 60) pu.dead = true;
+      }
+      break;
+    }
+
+    case 'bomber': {
+      // Descend, se pose, sonne, puis explose en anneau de projectiles.
+      if (e.stopY === null) e.stopY = 130 + Math.random() * 200;
+      if (e.y < e.stopY) {
+        e.y += speed * dt;
+      } else {
+        if (!e.rang) { e.rang = true; sfx.alarm(); }
+        e.fuse -= dt;
+        if (e.fuse < 0.8) e.flash = 0.04;          // clignote avant d'exploser
+        if (e.fuse <= 0) {
+          e.dead = true;                            // auto-destruction : pas de score
+          fireRing(game.enemyBullets, e.x, e.y, e.def.ringN,
+            e.def.bulletSpeed * diff, Math.random() * Math.PI, 1);
+          game.particles.explosion(e.x, e.y, 1.1);
+          sfx.explosion();
+          return;
+        }
+      }
+      break;
+    }
   }
 
   if (e.y > game.h + 80 || e.x < -100 || e.x > game.w + 100) {

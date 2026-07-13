@@ -3,7 +3,10 @@ import { loadAssets } from './assets.js';
 import { Game } from './game.js';
 import { unlockAudio, toggleMute, isMuted } from './audio.js';
 import { getHiscore, getPseudo, setPseudo, getOwner, getShip, setShip } from './storage.js';
-import { validatePseudo, checkPseudo, submitScore, fetchTop, fetchRank } from './leaderboard.js';
+import {
+  validatePseudo, checkPseudo, submitScore, fetchTop, fetchRank,
+  submitLevelScore, fetchTopLevel,
+} from './leaderboard.js';
 import { LEVELS, SHIPS, shipById } from './level.js';
 
 const $ = (id) => document.getElementById(id);
@@ -21,6 +24,7 @@ async function boot() {
   };
 
   let currentPseudo = getPseudo();
+  let currentTab = 'world';   // onglet du classement titre : 'world' | id de niveau
 
   /* ---------- Rendu du classement ---------- */
   function renderLeaderboard(container, rows, me = {}) {
@@ -91,8 +95,12 @@ async function boot() {
 
   async function renderTitleLeaderboard() {
     const container = $('title-leaderboard');
+    const tab = currentTab;
     setLoading(container);
-    const rows = await fetchTop();
+    const rows = tab === 'world' ? await fetchTop() : await fetchTopLevel(tab);
+    if (tab !== currentTab) return;   // l'utilisateur a changé d'onglet entre-temps
+    $('lb-title-text').textContent =
+      tab === 'world' ? 'CLASSEMENT MONDIAL' : 'CLASSEMENT NIVEAU ' + tab;
     renderLeaderboard(container, rows, { pseudo: currentPseudo, ship: game.shipDef.id });
   }
 
@@ -111,6 +119,11 @@ async function boot() {
         status = res.status;
         if (typeof res.best === 'number') best = res.best;
       }
+      // Scores par niveau (points marqués dans chaque niveau de la partie).
+      const owner = getOwner();
+      await Promise.all(
+        game.levelResults.map((r) => submitLevelScore(pseudo, r.level, r.score, owner, ship))
+      );
     }
     const [rows, rankInfo] = await Promise.all([fetchTop(), fetchRank(best)]);
     renderLeaderboard(container, rows, {
@@ -216,6 +229,28 @@ async function boot() {
     shipCards.appendChild(card);
   });
 
+  /* ---------- Onglets du classement (Mondial + par niveau) ---------- */
+  const lbTabs = $('lb-tabs');
+  const tabDefs = [{ key: 'world', label: 'MONDIAL' }]
+    .concat(LEVELS.map((l) => ({ key: l.id, label: 'N' + l.id })));
+  tabDefs.forEach((td) => {
+    const b = document.createElement('button');
+    b.className = 'lb-tab' + (td.key === currentTab ? ' active' : '');
+    b.type = 'button';
+    b.textContent = td.label;
+    const sel = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (currentTab === td.key) return;
+      currentTab = td.key;
+      [...lbTabs.children].forEach((c, i) => c.classList.toggle('active', tabDefs[i].key === currentTab));
+      renderTitleLeaderboard();
+    };
+    b.addEventListener('pointerup', sel);
+    b.addEventListener('click', sel);
+    lbTabs.appendChild(b);
+  });
+
   /* ---------- Champ pseudo ---------- */
   const pseudoInput = $('pseudo-input');
   const pseudoError = $('pseudo-error');
@@ -274,8 +309,18 @@ async function boot() {
   };
   bind('btn-start', tryStart);
   bind('btn-ship-back', () => ui.showScreen('title', { hiscore: getHiscore() }));
-  bind('btn-retry', () => game.startGame());     // rejoue avec le pseudo déjà validé
-  bind('btn-retry2', () => game.startGame());
+
+  // Modale d'explication des classements
+  const infoModal = $('lb-info-modal');
+  bind('btn-lb-info', () => infoModal.classList.remove('hidden'));
+  bind('btn-lb-info-close', () => infoModal.classList.add('hidden'));
+  infoModal.addEventListener('click', (e) => {
+    if (e.target === infoModal) infoModal.classList.add('hidden');   // clic hors carte
+  });
+  // REJOUER : relance depuis le niveau de départ de la partie (pas le dernier
+  // niveau atteint), avec le pseudo et le vaisseau déjà choisis.
+  bind('btn-retry', () => game.startGame(game.startLevelIndex));
+  bind('btn-retry2', () => game.startGame(game.startLevelIndex));
   bind('btn-resume', () => game.resume());
   bind('btn-quit', () => game.quitToTitle());
   bind('btn-gotitle', () => game.quitToTitle());

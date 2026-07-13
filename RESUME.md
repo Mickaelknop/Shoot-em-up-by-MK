@@ -20,7 +20,7 @@ R-Type biomécanique, niveau 2 hommage à la guerre des étoiles.
 
 ## 2. Contenu du jeu
 
-- **2 niveaux** complets (~3 min chacun), choisis via un **sélecteur** sur l'écran
+- **3 niveaux** complets (~3 min chacun), choisis via un **sélecteur** sur l'écran
   d'accueil :
   - **Niveau 1 — Mission Bydo** : drones / chasseurs / croiseurs lourds, mid-boss
     « Gardien », boss final « Bydo Core » à 3 phases.
@@ -29,17 +29,39 @@ R-Type biomécanique, niveau 2 hommage à la guerre des étoiles.
     impérial**. **Lasers verts** (joueur) / **rouges** (tous les ennemis, boss
     compris). Fond neutre en jeu, bascule sur **Étoile de la Mort + flotte** à la
     scène du boss final.
+  - **Niveau 3 — Bedroom Dimension** : dimension parallèle délirante où les
+    meubles prennent vie (le gagnant dort dans le grand lit). Fond
+    **psychédélique 100 % procédural** (tunnel d'anneaux arc-en-ciel + rayons en
+    rotation + objets du quotidien flottants en émojis), qui **s'emballe** aux
+    phases avancées du boss. Ennemis : Oreiller Ninja, Chaussette Mutante
+    (minuscule, 800 pts), Réveil Explosif (comportement `bomber` : sonne puis
+    explose en anneau), Lit Furieux, Armoire Carnivore, Aspirateur Kamikaze
+    (comportement `kamikaze` : zigzag + aspire les bonus), Couette Fantôme.
+    Mid-boss **Machine à café démoniaque**, boss final **Le Grand Lit Suprême**.
+    Bonus à thème (émojis) + 2 mécaniques exclusives : **📺 smart bomb** (efface
+    les tirs, dégâts à tout l'écran) et **😴 invincibilité 6 s**. Musique
+    `stage3` sautillante (esprit Parodius).
 - **Choix du vaisseau** : avant chaque partie (après « JOUER »), écran de
   sélection présentant les 2 vaisseaux sous forme de **cartes holographiques**
   (NOVA-7 / AILE-X). Purement cosmétique (mêmes stats). Le vaisseau choisi
   s'applique à n'importe quel niveau, sert de sprite en jeu + icône de vies, et
   s'affiche en petit à droite du pseudo dans le classement. Dernier choix
   mémorisé en `localStorage`. Cartes générées avec GPT-image-2 (low).
+- **Progression enchaînée** : le niveau choisi est le point de départ ; après le
+  boss final d'un niveau, on **enchaîne automatiquement** le niveau suivant
+  (bannière « NIVEAU X »), en **conservant vies / arme / bouclier** et en
+  **cumulant le score**. L'écran de victoire n'apparaît qu'après le **dernier**
+  niveau. Démarrer au N2 joue 2→3 ; au N3, joue 3 seul. `REJOUER` relance depuis
+  le niveau de départ (`game.startLevelIndex`), pas le dernier atteint. Le score
+  soumis au classement est le cumul (ou le total atteint à la mort).
 - Contrôle tactile : glisser le doigt (décalage vertical), tir auto.
 - Bonus : **W** (arme, 5 niveaux), **S** (bouclier), **1** (vie), **P** (points).
 - Écrans : titre, pause, game over, victoire. Pause auto si onglet en arrière-plan.
 - Audio 100 % synthétisé Web Audio (SFX + 3 musiques : `stage`, `stage2`, `boss`).
-- **Classement mondial en ligne** (voir section 4).
+- **Classements en ligne** : mondial (score total cumulé) **+ par niveau**
+  (points marqués dans chaque niveau seul), avec onglets `[MONDIAL][N1][N2][N3]`
+  sur l'écran titre et une **modale « ? »** expliquant l'enchaînement/le cumul
+  (voir section 4).
 
 ---
 
@@ -53,7 +75,7 @@ js/
   constants.js      Équilibrage : ENEMY_TYPES, MIDBOSS/BOSS, MIDBOSS2/BOSS2, STORAGE_KEYS
   game.js           Machine à états, collisions, HUD, rendu, décor de boss, spawns
   level.js          Scripts des niveaux + registre LEVELS + LevelRunner
-  enemies.js        Comportements génériques : 'drone' / 'fighter' / 'heavy'
+  enemies.js        Comportements : 'drone' / 'fighter' / 'heavy' / 'kamikaze' / 'bomber'
   boss.js           Boss paramétrable (def par niveau), phases, barre de vie
   player.js         Vaisseau (sprite par niveau via levelDef.playerImg)
   bullets.js        Projectiles + styles de tir ('default' / 'sw' / 'green')
@@ -71,17 +93,30 @@ assets/raw/         Images sources brutes (fond magenta), non chargées
 
 ### Registre des niveaux (`level.js` → `LEVELS`)
 Chaque niveau : `{ id, name, subtitle, playerImg, bg, bossBg, bolt, enemyBolt,
-song, build, midboss, boss }`. Le sélecteur de l'écran d'accueil se construit
-automatiquement depuis `LEVELS`.
+song, build, midboss, boss }` + champs optionnels : `bgFx: 'psychedelic'`
+(fond procédural, `bg: null`), `bonusPool` (table de drop `powerups.js/POOLS`),
+`powerupSkin` (émojis à la place des lettres). Le sélecteur de l'écran
+d'accueil se construit automatiquement depuis `LEVELS`.
 
 **Ajouter un niveau** = écrire `buildLevelN(game)` + une entrée dans `LEVELS`.
 
 ---
 
-## 4. Classement mondial (Supabase)
+## 4. Classements (Supabase)
 
 - **Projet** : `KingofGolf` (ref `oyvyxxqufcofvyjmrlqh`, org MikaHome, eu-west-3).
-  Table isolée `nova_striker_scores`, sans lien avec les tables golf.
+  Deux tables isolées, sans lien avec les tables golf :
+  - `nova_striker_scores` — **classement mondial** (score total d'une partie).
+  - `nova_striker_level_scores` — **classement par niveau** (points marqués dans
+    un niveau seul). Colonnes `id, pseudo, level, score, owner, ship, created_at`,
+    index unique `(level, lower(pseudo))`. Écriture via RPC
+    `nova_submit_level_score(p_pseudo, p_level, p_score, p_owner, p_ship)` (même
+    logique de propriété/meilleur score). Lecture `anon` limitée à
+    `pseudo, score, ship, level, created_at` (⚠️ `created_at` **doit** être dans
+    le GRANT SELECT car le tri PostgREST porte dessus). Soumission en fin de
+    partie pour chaque niveau joué (`game.levelResults`).
+  - UI : onglets sur l'écran titre (`renderTitleLeaderboard` selon `currentTab`)
+    + modale `#lb-info-modal`.
 - **Modèle** : **une seule ligne par pseudo** = son meilleur score. Colonnes
   `id, pseudo, score, owner, created_at, ship`. Index unique sur `lower(pseudo)`.
   `ship` (`nova`|`xwing`|NULL) = vaisseau du joueur, lisible en `anon`
@@ -160,7 +195,7 @@ dépôt.
 
 ## 9. Pistes d'évolution possibles
 
-- Niveau 3 ; boss à phases pour le croiseur impérial.
+- Niveau 4 ; boss à phases pour le croiseur impérial.
 - Arme spéciale (torpille à protons) déclenchée par bouton.
 - Mode survie infini.
 - Rejouer un niveau déjà terminé / progression sauvegardée.

@@ -127,6 +127,21 @@ export const sfx = {
     const t = ctx.currentTime;
     [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => osc('square', f, t + i * 0.09, 0.16, 0.22));
   },
+  alarm() {
+    // Sonnerie de réveil : trilles aiguës rapides (niveau Bedroom Dimension)
+    if (!ctx || muted) return;
+    const t = ctx.currentTime;
+    for (let i = 0; i < 6; i++) {
+      osc('square', i % 2 ? 1760 : 2093, t + i * 0.09, 0.07, 0.16);
+    }
+  },
+  smartBomb() {
+    // Télécommande : gros zap qui balaie l'écran
+    if (!ctx || muted) return;
+    const t = ctx.currentTime;
+    osc('sawtooth', 1200, t, 0.5, 0.4, 80);
+    noise(t, 0.55, 0.45, 5000, 300);
+  },
   bossWarning() {
     if (!ctx || muted) return;
     const t = ctx.currentTime;
@@ -163,6 +178,15 @@ const SONGS = {
     arp:   [55, 58, 62, 58, 55, 58, 62, 58, 60, 63, 67, 63, 62, 66, 69, 66],
     lead:  [0, 0, 67, 0, 66, 0, 0, 63, 0, 62, 0, 0, 58, 0, 62, 0],
     hat:   [1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1],
+  },
+  // Niveau 3 : Bedroom Dimension — sautillant, majeur, délirant (do majeur,
+  // basse qui rebondit + lead guilleret, esprit Parodius/TwinBee).
+  stage3: {
+    bpm: 150,
+    bass:  [36, 0, 43, 0, 36, 0, 43, 41, 33, 0, 40, 0, 35, 0, 41, 43],
+    arp:   [60, 64, 67, 64, 60, 64, 67, 72, 57, 60, 64, 60, 59, 62, 65, 67],
+    lead:  [72, 0, 76, 0, 79, 76, 72, 0, 74, 0, 71, 0, 72, 74, 76, 0],
+    hat:   [1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1],
   },
 };
 
