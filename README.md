@@ -1,124 +1,89 @@
 # NOVA STRIKER — Mission Bydo
 
-Shoot'em up vertical mobile-first inspiré des jeux d'arcade des années 90 (style R-Type),
-jouable directement dans un navigateur, sans installation ni dépendance.
+Shoot'em up vertical mobile-first inspiré des jeux d'arcade des années 90, jouable directement dans un navigateur, sans installation côté joueur.
 
-## Lancer le jeu
+**Jouer :** <https://mickaelknop.github.io/Shoot-em-up-by-MK/>
 
-Le jeu utilise des modules ES : il doit être servi en HTTP (pas en `file://`).
+## Lancer le jeu en local
+
+Le jeu utilise des modules ES et doit être servi en HTTP :
 
 ```bash
 python -m http.server 8741
-# puis ouvrir http://localhost:8741 sur le téléphone ou l'ordinateur
 ```
 
-N'importe quel hébergement statique fonctionne (GitHub Pages, Netlify, etc.).
+Ouvrir ensuite <http://localhost:8741>. Tout hébergement statique convient.
 
 ## Contrôles
 
-- **Mobile** : glisser le doigt n'importe où sur l'écran — le vaisseau suit le doigt
-  (avec un décalage vertical pour ne pas être masqué). Tir automatique.
-- **Desktop** (pour tester) : flèches ou ZQSD/WASD, `P` ou `Échap` pour la pause.
+- **Mobile** : glisser le doigt sur l'écran ; le vaisseau suit le doigt avec un décalage vertical. Le tir est automatique.
+- **Ordinateur** : flèches ou ZQSD/WASD ; `P` ou `Échap` pour la pause.
 
 ## Contenu
 
-- **2 niveaux** complets scénarisés (~3 min chacun), choisis via un **sélecteur de
-  niveau** sur l'écran d'accueil :
-  - **Niveau 1 — Mission Bydo** (style R-Type biomécanique) : vagues progressives,
-    mid-boss « Gardien », boss final « Bydo Core » à 3 phases.
-  - **Niveau 2 — Guerre des étoiles** (hommage) : le joueur pilote un **X-Wing**,
-    affronte chasseurs et intercepteurs impériaux puis un **croiseur impérial** en
-    boss final ; **lasers rouges** (rebelles) et **verts** (impériaux) ; le fond
-    reste neutre pendant le niveau et bascule sur l'**Étoile de la Mort + la flotte
-    impériale** uniquement à la scène du boss.
-- Comportements d'ennemis distincts et réutilisables : drone (sinusoïde), chasseur
-  (piqué guidé), lourd (barrage en éventail) — déclinés par niveau via des sprites
-  différents.
-- Bonus : **W** (arme +, 5 niveaux), **S** (bouclier), **1** (vie), **P** (points).
-- Score, meilleur score persistant (`localStorage`), écrans titre / pause / game over /
-  victoire, pause automatique quand l'onglet passe en arrière-plan.
-- **Classement mondial en ligne** (Supabase) : saisie d'un pseudo avant la partie,
-  soumission automatique du score en fin de partie, affichage du **Top 10 + rang
-  personnel** sur les écrans titre, game over et victoire.
-- Effets : particules, secousses d'écran, textes flottants, fond défilant + étoiles
-  en parallaxe ; sons et musiques chiptune 100 % synthétisés en Web Audio (aucun
-  fichier audio).
+- **3 niveaux** scénarisés, avec progression automatique jusqu'au niveau 3 :
+  - **Mission Bydo** : secteur biomécanique, Gardien puis Bydo Core ;
+  - **Guerre des étoiles** : chasseurs impériaux, Destroyer stellaire puis Croiseur impérial ;
+  - **Bedroom Dimension** : tunnel psychédélique, Machine à café démoniaque puis Grand Lit suprême.
+- Départ possible depuis n'importe quel niveau.
+- Deux vaisseaux jouables aux caractéristiques identiques : NOVA-7 et AILE-X.
+- Ennemis aux comportements distincts, boss à plusieurs phases, bonus d'arme, bouclier, vie et points. Le niveau 3 ajoute une smart bomb et une invincibilité courte.
+- Score local persistant, pause automatique lorsque l'onglet passe en arrière-plan et sons chiptune synthétisés avec Web Audio.
+- Classements Supabase : Top 10 mondial, Top 10 par niveau et rang personnel.
+
+## Expérience mobile
+
+L'écran titre utilise la hauteur dynamique du navigateur (`dvh`) et tient compte des zones de sécurité des smartphones. Sur les écrans bas, le logo et les commandes sont compactés. Si dix scores dépassent encore la hauteur disponible, l'écran titre entier défile verticalement : la dernière ligne reste accessible sans introduire un second défilement dans le classement.
 
 ## Architecture
 
-```
-index.html          Écrans HTML (titre, pause, game over, victoire) + canvas
-css/style.css       UI mobile-first (safe-area, tactile)
+```text
+index.html          écrans HTML et canvas
+css/style.css       interface mobile-first, safe areas et responsive
 js/
-  main.js           Point d'entrée : chargement, boucle rAF, liaison des boutons
-  constants.js      Équilibrage central (vitesses, HP, scores, difficulté)
-  game.js           Machine à états, collisions, HUD, rendu, décor de boss, spawns
-  level.js          Scripts des niveaux + registre LEVELS + exécuteur (LevelRunner)
-  enemies.js        Comportements d'ennemis génériques (drone/fighter/heavy)
-  boss.js           Mid-boss et boss final (phases, patterns, barre de vie)
-  player.js         Vaisseau : suivi tactile, armes, bouclier, vies
-  bullets.js        Projectiles avec pool d'objets + patterns (anneau, éventail)
-  powerups.js       Bonus récupérables
-  particles.js      Particules et textes flottants
-  input.js          Pointer events (tactile + souris) et clavier
-  audio.js          SFX synthétisés + séquenceur musical Web Audio
-  assets.js         Chargeur d'images
-  storage.js        Persistance localStorage (meilleur score, pseudo, audio)
-  config.js         Config Supabase du classement (URL + clé anon publique)
-  leaderboard.js    Accès REST au classement en ligne (fetch, zéro dépendance)
-assets/             Sprites détourés (générés par IA via fal.ai / GPT-image-2)
-assets/raw/         Images sources brutes (fond magenta) — non chargées par le jeu
+  main.js           chargement, écrans, boucle d'animation et interactions
+  constants.js      équilibrage, ennemis, boss et bonus
+  game.js           états, collisions, HUD, rendu et progression
+  level.js          scripts des trois niveaux, registre LEVELS et vaisseaux
+  enemies.js        comportements des ennemis
+  boss.js           phases et patterns des boss
+  player.js         pilotage, armes, bouclier et vies
+  bullets.js        projectiles et patterns
+  powerups.js       bonus récupérables
+  particles.js      particules et textes flottants
+  input.js          tactile, souris et clavier
+  audio.js          effets et musiques Web Audio
+  assets.js         chargement des images
+  storage.js        données locales du joueur
+  config.js         configuration publique Supabase
+  leaderboard.js    accès REST/RPC aux classements
+assets/             sprites et illustrations
+tests/              contrôles automatisés de l'interface mobile
 ```
+
+## Classements et sécurité
+
+La clé `anon` présente dans `js/config.js` est publique par conception. Les écritures directes dans les tables sont révoquées et les RPC Supabase assurent la validation, la propriété d'un pseudo et la conservation atomique du meilleur score. Le jeton `owner` stocké dans le navigateur sert à reconnaître un joueur ; ce n'est pas un secret d'authentification.
+
+Le score est cependant calculé dans le navigateur puis envoyé à Supabase. Un utilisateur déterminé peut donc fabriquer une valeur en appelant directement l'API. Le classement doit être considéré comme un classement communautaire occasionnel, et non comme un système anti-triche. Une garantie forte demanderait un serveur de jeu capable de vérifier la partie, ainsi qu'une limitation de débit côté API.
+
+## Tests
+
+Le test Playwright injecte un Top 10 complet et vérifie les formats 320×568, 360×640, 390×844 et 430×932. Il contrôle que la dixième ligne est atteignable, qu'aucun débordement horizontal n'apparaît et qu'un clic sur un vaisseau ne lance qu'une seule partie.
+
+```bash
+npm ci
+npx playwright install chromium
+npm test
+```
+
+Le même contrôle s'exécute automatiquement dans GitHub Actions à chaque pull request.
 
 ## Étendre le jeu
 
-- **Nouveau niveau** : écrire un `buildLevelN(game)` dans `level.js` (liste
-  d'événements `{wait}`, `{spawn}`, `{waitClear}`, `{midboss}`, `{boss}`) puis
-  ajouter une entrée au registre `LEVELS` (nom, sprite du joueur `playerImg`, fond
-  `bg`, décor de boss optionnel `bossBg`, style de tir `bolt`/`enemyBolt`, musique
-  `song`, mid-boss et boss). Le sélecteur de l'écran d'accueil se construit
-  automatiquement à partir de `LEVELS`.
-- **Nouvel ennemi** : ajouter une entrée dans `ENEMY_TYPES` (`constants.js`),
-  son sprite dans `assets.js`, et son comportement dans `enemies.js`
-  (`updateEnemy` / `enemyFire`).
-- **Nouvelle arme** : ajouter un `case` dans `Player.fire()`.
-- **Nouveau bonus** : ajouter le type dans `POWERUPS` (`constants.js`) et son effet
-  dans `Game.applyPowerup()`.
-- **Nouveau boss** : ajouter une définition dans `constants.js` et ses patterns
-  dans `boss.js`.
+- **Nouveau niveau** : créer un constructeur dans `js/level.js`, puis ajouter son entrée à `LEVELS`.
+- **Nouvel ennemi** : compléter `ENEMY_TYPES`, le manifeste d'images et son comportement.
+- **Nouvelle arme ou bonus** : ajouter sa constante puis son effet dans le joueur ou le jeu.
+- **Nouveau boss** : ajouter sa définition et ses patterns.
 
-## Classement en ligne (Supabase)
-
-Le classement utilise **Supabase** (Postgres + API REST PostgREST), sans backend à
-maintenir et sans dépendance JS (appels via `fetch`).
-
-- **Table** : `nova_striker_scores (id, pseudo, score, owner, created_at)`, isolée dans
-  le projet Supabase `KingofGolf` (org MikaHome). **Une seule ligne par pseudo** =
-  son meilleur score (index unique sur `lower(pseudo)`).
-- **Pseudo unique et « possédé »** : chaque navigateur génère un jeton anonyme
-  (`owner`, stocké en `localStorage`, jamais exposé). Un pseudo appartient au premier
-  jeton qui l'enregistre ; un **autre** joueur ne peut pas le réutiliser. Le **même**
-  joueur qui rejoue ne met à jour son entrée **que** s'il bat son record.
-- **Écritures via fonctions serveur (RPC)** — aucune écriture directe possible :
-  - `nova_check_pseudo(pseudo, owner)` → `available` / `owned` / `taken`
-    (vérifié à la saisie du pseudo, avant de lancer la partie) ;
-  - `nova_submit_score(pseudo, score, owner)` → `inserted` / `updated` /
-    `not_improved` / `taken`, en conservant le meilleur score de façon atomique.
-- **Sécurité** : la clé `anon` de `config.js` est **publique par conception** ; la
-  protection vient du serveur — lecture limitée aux colonnes `pseudo, score`
-  (la colonne `owner` n'est **pas** lisible publiquement), `INSERT/UPDATE/DELETE`
-  directs révoqués, toutes les règles (validation, propriété, meilleur score)
-  appliquées dans les RPC. La clé `service_role` (secrète) n'est jamais utilisée.
-- **Vérifié** : lecture de `owner` refusée (HTTP 401), insertion directe refusée
-  (401), et impossibilité pour un tiers d'écraser un pseudo — même en contournant
-  le code du jeu.
-
-Pour pointer vers un autre projet Supabase : modifier `SUPABASE_URL` /
-`SUPABASE_ANON_KEY` dans `js/config.js` et recréer la table, l'index unique et les
-deux fonctions RPC.
-
-## Outils de test (dev)
-
-- `?skip=midboss` ou `?skip=boss` + `window.__skipTo()` dans la console : avance
-  le script du niveau jusqu'au boss.
-- `window.__game` : accès à l'état du jeu dans la console.
+Outils de développement : `?skip=midboss` ou `?skip=boss`, puis `window.__skipTo()` dans la console ; `window.__game` expose l'état courant du jeu.
