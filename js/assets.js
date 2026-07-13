@@ -18,6 +18,9 @@ const MANIFEST = {
   cruiser: 'assets/cruiser.png',    // boss : croiseur impérial
   bg2: 'assets/bg2.jpg',            // fond neutre en jeu
   bg2boss: 'assets/bg2boss.jpg',    // décor de la scène du boss (station + flotte)
+  // Cartes de sélection du vaisseau (illustrations holographiques)
+  card_nova: 'assets/card_nova.jpg',
+  card_xwing: 'assets/card_xwing.jpg',
 };
 
 export const images = {};

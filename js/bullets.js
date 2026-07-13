@@ -17,9 +17,9 @@ function makeGlowSprite(size, inner, outer) {
 let playerBoltSprite = null;
 let enemyBallSprite = null;
 let enemyBallSprite2 = null;
-let playerBoltSW = null;             // laser rouge « rebelle »
-let enemyBoltGreen = null;           // laser vert « impérial »
-let enemyBoltGreen2 = null;
+let playerBoltSW = null;             // laser vert « rebelle » (vaisseau joueur)
+let enemyBoltRed = null;             // laser rouge « impérial » (tous ennemis + boss)
+let enemyBoltRed2 = null;
 
 // Bolt allongé type laser Star Wars : cœur blanc, halo coloré vif.
 function makeLaserBolt(color) {
@@ -59,17 +59,17 @@ function ensureSprites() {
   playerBoltSprite = c;
   enemyBallSprite = makeGlowSprite(22, '#ff5544', 'rgba(255,40,20,0)');
   enemyBallSprite2 = makeGlowSprite(22, '#ff9944', 'rgba(255,140,20,0)');
-  // Style Star Wars
-  playerBoltSW = makeLaserBolt('#ff3322');
-  enemyBoltGreen = makeGlowSprite(20, '#66ff44', 'rgba(40,220,20,0)');
-  enemyBoltGreen2 = makeGlowSprite(20, '#aaff55', 'rgba(120,240,20,0)');
+  // Style Star Wars : joueur vert, ennemis (y compris boss) rouge
+  playerBoltSW = makeLaserBolt('#33ff44');
+  enemyBoltRed = makeGlowSprite(20, '#ff4433', 'rgba(220,40,20,0)');
+  enemyBoltRed2 = makeGlowSprite(20, '#ff8855', 'rgba(240,120,20,0)');
 }
 
 export class Bullets {
   constructor(isEnemy) {
     this.isEnemy = isEnemy;
     this.pool = [];
-    this.style = 'default';   // 'default' | 'sw' (joueur) | 'green' (ennemis)
+    this.style = 'default';   // 'default' | 'sw' (joueur, laser vert) | 'red' (ennemis)
     ensureSprites();
   }
 
@@ -101,12 +101,12 @@ export class Bullets {
   }
 
   draw(ctx) {
-    const green = this.style === 'green';
+    const red = this.style === 'red';
     for (const b of this.pool) {
       if (b.dead) continue;
       if (this.isEnemy) {
-        const s = green
-          ? (b.variant ? enemyBoltGreen2 : enemyBoltGreen)
+        const s = red
+          ? (b.variant ? enemyBoltRed2 : enemyBoltRed)
           : (b.variant ? enemyBallSprite2 : enemyBallSprite);
         const d = b.r * 3.6;
         ctx.drawImage(s, b.x - d / 2, b.y - d / 2, d, d);

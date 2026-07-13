@@ -128,7 +128,7 @@ export class Player {
     if (this.invincible > 0 && Math.floor(time * 14) % 2 === 0 && this.game.state === 'playing') {
       ctx.globalAlpha = 0.35;
     }
-    const img = images[this.game.levelDef.playerImg] || images.player;
+    const img = images[this.game.shipDef.img] || images.player;
     const d = PLAYER.drawSize;
     const h = d * (img.height / img.width);
     ctx.drawImage(img, this.x - d / 2, this.y - h / 2, d, h);

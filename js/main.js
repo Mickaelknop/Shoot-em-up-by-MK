@@ -2,9 +2,9 @@
 import { loadAssets } from './assets.js';
 import { Game } from './game.js';
 import { unlockAudio, toggleMute, isMuted } from './audio.js';
-import { getHiscore, getPseudo, setPseudo, getOwner } from './storage.js';
+import { getHiscore, getPseudo, setPseudo, getOwner, getShip, setShip } from './storage.js';
 import { validatePseudo, checkPseudo, submitScore, fetchTop, fetchRank } from './leaderboard.js';
-import { LEVELS } from './level.js';
+import { LEVELS, SHIPS, shipById } from './level.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -13,6 +13,7 @@ async function boot() {
 
   const screens = {
     title: $('screen-title'),
+    shipselect: $('screen-shipselect'),
     pause: $('screen-pause'),
     gameover: $('screen-gameover'),
     victory: $('screen-victory'),
@@ -39,14 +40,16 @@ async function boot() {
       const isMe = me.pseudo && !meShown && r.pseudo === me.pseudo &&
         (me.score === undefined || r.score === me.score);
       if (isMe) meShown = true;
-      body.appendChild(makeRow(i + 1, r.pseudo, r.score, i < 3, isMe));
+      // Vaisseau : celui renvoyé par le serveur, ou celui de la session pour ma ligne.
+      const ship = r.ship || (isMe ? me.ship : null);
+      body.appendChild(makeRow(i + 1, r.pseudo, r.score, i < 3, isMe, ship));
     });
     if (me.rank) {
       if (!meShown && me.pseudo) {
         const sep = document.createElement('div');
         sep.className = 'lb-sep';
         body.appendChild(sep);
-        body.appendChild(makeRow(me.rank, me.pseudo, me.score, false, true));
+        body.appendChild(makeRow(me.rank, me.pseudo, me.score, false, true, me.ship));
       }
       const line = document.createElement('div');
       line.className = 'lb-myrank';
@@ -55,7 +58,7 @@ async function boot() {
     }
   }
 
-  function makeRow(rank, pseudo, score, topThree, isMe) {
+  function makeRow(rank, pseudo, score, topThree, isMe, ship) {
     const row = document.createElement('div');
     row.className = 'lb-row' + (topThree ? ' lb-top' + rank : '') + (isMe ? ' lb-me' : '');
     const rk = document.createElement('span');
@@ -64,6 +67,15 @@ async function boot() {
     const nm = document.createElement('span');
     nm.className = 'lb-name';
     nm.textContent = pseudo;                       // textContent => aucune injection HTML
+    // Petite icône du vaisseau à droite du pseudo (si connu)
+    const def = ship ? shipById(ship) : null;
+    if (def) {
+      const ic = document.createElement('img');
+      ic.className = 'lb-ship';
+      ic.src = 'assets/' + def.img + '.png';
+      ic.alt = def.name;
+      nm.appendChild(ic);
+    }
     const sc = document.createElement('span');
     sc.className = 'lb-score';
     sc.textContent = Number(score).toLocaleString('fr-FR');
@@ -81,7 +93,7 @@ async function boot() {
     const container = $('title-leaderboard');
     setLoading(container);
     const rows = await fetchTop();
-    renderLeaderboard(container, rows, { pseudo: currentPseudo });
+    renderLeaderboard(container, rows, { pseudo: currentPseudo, ship: game.shipDef.id });
   }
 
   // Fin de partie : soumet le score (une ligne/pseudo, meilleur conservé) puis
@@ -90,10 +102,11 @@ async function boot() {
     const container = kind === 'gameover' ? $('go-leaderboard') : $('v-leaderboard');
     setLoading(container);
     const pseudo = currentPseudo || getPseudo();
+    const ship = game.shipDef.id;
     let best = score;
     let status = null;
     if (pseudo && score > 0) {
-      const res = await submitScore(pseudo, score, getOwner());
+      const res = await submitScore(pseudo, score, getOwner(), ship);
       if (res) {
         status = res.status;
         if (typeof res.best === 'number') best = res.best;
@@ -103,6 +116,7 @@ async function boot() {
     renderLeaderboard(container, rows, {
       // Si le pseudo appartient à un autre joueur, pas de surbrillance.
       pseudo: status === 'taken' ? null : pseudo,
+      ship,
       score: best,
       rank: rankInfo ? rankInfo.rank : null,
       total: rankInfo ? rankInfo.total : null,
@@ -168,6 +182,40 @@ async function boot() {
     levelSelect.appendChild(btn);
   });
 
+  /* ---------- Sélection du vaisseau (cartes) ---------- */
+  // Restaure le dernier vaisseau choisi (sinon le premier par défaut).
+  const savedShip = SHIPS.findIndex((s) => s.id === getShip());
+  if (savedShip >= 0) game.selectShip(savedShip);
+
+  const shipCards = $('ship-cards');
+  SHIPS.forEach((s, idx) => {
+    const card = document.createElement('button');
+    card.className = 'ship-card' + (idx === game.shipIndex ? ' selected' : '');
+    card.type = 'button';
+    const img = document.createElement('img');
+    img.className = 'ship-card-img';
+    img.src = 'assets/' + s.card + '.jpg';
+    img.alt = s.name;
+    const nm = document.createElement('span');
+    nm.className = 'ship-card-name';
+    nm.textContent = s.name;
+    const tg = document.createElement('span');
+    tg.className = 'ship-card-tag';
+    tg.textContent = s.tagline;
+    card.append(img, nm, tg);
+    const pick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      game.selectShip(idx);
+      setShip(s.id);
+      [...shipCards.children].forEach((c, i) => c.classList.toggle('selected', i === idx));
+      game.startGame();   // lance la partie avec le vaisseau choisi
+    };
+    card.addEventListener('pointerup', pick);
+    card.addEventListener('click', pick);
+    shipCards.appendChild(card);
+  });
+
   /* ---------- Champ pseudo ---------- */
   const pseudoInput = $('pseudo-input');
   const pseudoError = $('pseudo-error');
@@ -201,7 +249,9 @@ async function boot() {
     }
     currentPseudo = v.value;
     setPseudo(v.value);
-    game.startGame();
+    // Pseudo validé : on passe à l'écran de choix du vaisseau (puis la partie).
+    [...shipCards.children].forEach((c, i) => c.classList.toggle('selected', i === game.shipIndex));
+    ui.showScreen('shipselect');
   }
 
   ui.showScreen('title', { hiscore: getHiscore() });
@@ -223,6 +273,7 @@ async function boot() {
     el.addEventListener('click', handler);
   };
   bind('btn-start', tryStart);
+  bind('btn-ship-back', () => ui.showScreen('title', { hiscore: getHiscore() }));
   bind('btn-retry', () => game.startGame());     // rejoue avec le pseudo déjà validé
   bind('btn-retry2', () => game.startGame());
   bind('btn-resume', () => game.resume());

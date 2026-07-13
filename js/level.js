@@ -197,14 +197,39 @@ export const LEVELS = [
     playerImg: 'xwing',    // chasseur rebelle en X
     bg: 'bg2',             // espace neutre pendant le niveau
     bossBg: 'bg2boss',     // station + flotte, uniquement à la scène du boss final
-    bolt: 'sw',            // lasers rouges rebelles
-    enemyBolt: 'green',    // lasers verts impériaux
+    bolt: 'sw',            // laser vert du vaisseau joueur (rebelle)
+    enemyBolt: 'red',      // lasers rouges impériaux (chasseurs + boss)
     song: 'stage2',
     build: buildLevel2,
     midboss: MIDBOSS2,
     boss: BOSS2,
   },
 ];
+
+/* ---------- Vaisseaux jouables ---------- */
+// Choix cosmétique : les 2 vaisseaux partagent exactement les mêmes stats.
+// `img`  = sprite en jeu (clé du manifeste assets) ; `card` = illustration
+// holographique de l'écran de sélection ; `id` = valeur stockée au classement.
+export const SHIPS = [
+  {
+    id: 'nova',
+    img: 'player',
+    card: 'card_nova',
+    name: 'NOVA-7',
+    tagline: 'Intercepteur d’assaut',
+  },
+  {
+    id: 'xwing',
+    img: 'xwing',
+    card: 'card_xwing',
+    name: 'AILE-X',
+    tagline: 'Chasseur rebelle',
+  },
+];
+
+export function shipById(id) {
+  return SHIPS.find((s) => s.id === id) || null;
+}
 
 /* ---------- Exécuteur de script de niveau ---------- */
 

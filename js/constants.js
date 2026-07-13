@@ -87,6 +87,7 @@ export const STORAGE_KEYS = {
   muted: 'novastriker_muted',
   pseudo: 'novastriker_pseudo',
   owner: 'novastriker_owner',   // jeton anonyme de propriété du pseudo
+  ship: 'novastriker_ship',     // dernier vaisseau choisi (id)
 };
 
 // Croissance de la difficulté au fil du niveau (multiplie vitesse/fréquence des tirs)

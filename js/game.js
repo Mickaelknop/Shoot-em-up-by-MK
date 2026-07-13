@@ -8,7 +8,7 @@ import { Powerups } from './powerups.js';
 import { Particles, FloatingTexts } from './particles.js';
 import { createEnemy, updateEnemy, drawEnemy } from './enemies.js';
 import { Boss } from './boss.js';
-import { LEVELS, LevelRunner } from './level.js';
+import { LEVELS, SHIPS, LevelRunner } from './level.js';
 import { sfx, playMusic, stopMusic } from './audio.js';
 import { getHiscore, setHiscore } from './storage.js';
 
@@ -38,6 +38,8 @@ export class Game {
     this.level = null;
     this.levelIndex = 0;          // niveau sélectionné (index dans LEVELS)
     this.levelDef = LEVELS[0];
+    this.shipIndex = 0;           // vaisseau choisi (index dans SHIPS) — cosmétique
+    this.shipDef = SHIPS[0];
 
     this.score = 0;
     this.shakeT = 0;
@@ -93,6 +95,12 @@ export class Game {
   selectLevel(index) {
     this.levelIndex = Math.max(0, Math.min(LEVELS.length - 1, index));
     this.levelDef = LEVELS[this.levelIndex];
+  }
+
+  // Choix du vaisseau (cosmétique) — s'applique à n'importe quel niveau.
+  selectShip(index) {
+    this.shipIndex = Math.max(0, Math.min(SHIPS.length - 1, index));
+    this.shipDef = SHIPS[this.shipIndex];
   }
 
   startGame(levelIndex = this.levelIndex) {
@@ -450,7 +458,7 @@ export class Game {
     ctx.fillText('HI ' + Math.max(this.hiscore, this.score), this.w / 2 + 20, 23);
 
     // Vies (mini vaisseaux) + niveau d'arme, en bas à gauche
-    const img = images[this.levelDef.playerImg] || images.player;
+    const img = images[this.shipDef.img] || images.player;
     for (let i = 0; i < this.player.lives; i++) {
       ctx.globalAlpha = 0.9;
       ctx.drawImage(img, 10 + i * 26, this.h - 38, 20, 20 * (img.height / img.width));

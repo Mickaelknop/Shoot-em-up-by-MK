@@ -57,16 +57,17 @@ export async function checkPseudo(pseudo, owner) {
 
 // Soumet un score via la fonction serveur (une ligne par pseudo, meilleur conservé).
 // Renvoie { status, best } — status : inserted|updated|not_improved|taken|invalid — ou null.
-export async function submitScore(pseudo, score, owner) {
+export async function submitScore(pseudo, score, owner, ship) {
   const v = validatePseudo(pseudo);
   if (!v.ok) return null;
   const s = Math.max(0, Math.min(100000000, Math.round(score)));
-  return await rpc('nova_submit_score', { p_pseudo: v.value, p_score: s, p_owner: owner });
+  return await rpc('nova_submit_score',
+    { p_pseudo: v.value, p_score: s, p_owner: owner, p_ship: ship || null });
 }
 
-// Récupère les N meilleurs scores. Renvoie un tableau [{pseudo, score}] ou null.
+// Récupère les N meilleurs scores. Renvoie un tableau [{pseudo, score, ship}] ou null.
 export async function fetchTop(limit = LEADERBOARD_SIZE) {
-  const url = `${REST}?select=pseudo,score&order=score.desc,created_at.asc&limit=${limit}`;
+  const url = `${REST}?select=pseudo,score,ship&order=score.desc,created_at.asc&limit=${limit}`;
   const t = withTimeout(8000);
   try {
     const res = await fetch(url, { headers: HEADERS, signal: t.signal });

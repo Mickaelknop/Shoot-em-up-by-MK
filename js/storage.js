@@ -36,6 +36,14 @@ export function setPseudo(pseudo) {
   write(STORAGE_KEYS.pseudo, pseudo);
 }
 
+export function getShip() {
+  return read(STORAGE_KEYS.ship, '');
+}
+
+export function setShip(id) {
+  write(STORAGE_KEYS.ship, id);
+}
+
 // Jeton anonyme identifiant ce navigateur comme « propriétaire » d'un pseudo.
 // Généré une fois et conservé localement (jamais exposé publiquement).
 export function getOwner() {

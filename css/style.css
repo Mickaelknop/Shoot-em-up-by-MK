@@ -244,6 +244,57 @@ html, body {
 .level-btn.selected .lv-num { color: #7fdcff; }
 .level-btn.selected .lv-name { color: #ffffff; }
 
+/* ---------- Sélection du vaisseau (cartes) ---------- */
+.ship-cards {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: min(440px, 94vw);
+  margin: 6px 0 4px;
+}
+.ship-card {
+  flex: 1 1 0;
+  min-width: 140px;
+  max-width: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 10px 12px;
+  font-family: inherit;
+  background: rgba(8, 16, 36, 0.7);
+  border: 2px solid rgba(90, 150, 220, 0.35);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+.ship-card-img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 9px;
+  background: #05030f;
+}
+.ship-card-name {
+  font-size: clamp(13px, 3.6vw, 16px);
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #cfe0f5;
+}
+.ship-card-tag {
+  font-size: clamp(9px, 2.6vw, 11px);
+  letter-spacing: 0.5px;
+  color: #62759c;
+}
+.ship-card.selected {
+  border-color: #7fe0ff;
+  box-shadow: 0 0 18px rgba(90, 200, 255, 0.5);
+  transform: translateY(-2px);
+}
+.ship-card.selected .ship-card-name { color: #ffffff; }
+.ship-card:active { transform: scale(0.98); }
+
 /* ---------- Classement ---------- */
 .leaderboard {
   width: min(320px, 86vw);
@@ -305,6 +356,13 @@ html, body {
   color: #eaf6ff;
 }
 .lb-row.lb-me .lb-name { color: #7fe0ff; }
+.lb-ship {
+  height: 15px;
+  width: auto;
+  vertical-align: -3px;
+  margin-left: 6px;
+  filter: drop-shadow(0 0 3px rgba(120, 200, 255, 0.5));
+}
 .lb-sep {
   border-top: 1px dashed rgba(120, 160, 210, 0.3);
   margin: 6px 0;
