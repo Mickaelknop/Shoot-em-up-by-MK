@@ -69,7 +69,9 @@ R-Type biomécanique, niveau 2 hommage à la guerre des étoiles.
 
 ```
 index.html          Écrans HTML + canvas
-css/style.css       UI mobile-first (safe-area, tactile, sélecteur, classement)
+css/style.css       UI mobile-first (safe-area, tactile, sélecteur, classement).
+                    Écrans : centrage par marges auto + overflow-y (jamais de
+                    troncature), tailles fluides en vh, compaction <760px de haut
 js/
   main.js           Entrée : chargement, boucle rAF, boutons, pseudo, classement UI
   constants.js      Équilibrage : ENEMY_TYPES, MIDBOSS/BOSS, MIDBOSS2/BOSS2, STORAGE_KEYS

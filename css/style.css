@@ -51,6 +51,9 @@ html, body {
 #btn-mute.muted { color: #556; border-color: rgba(120, 140, 170, 0.35); }
 
 /* ---------- Écrans ---------- */
+/* Centrage par marges auto (premier/dernier enfant) : centré quand tout tient,
+   et bascule en défilement vertical quand le contenu dépasse (petits écrans),
+   au lieu de tronquer le haut/bas comme `justify-content: center`. */
 .screen {
   position: absolute;
   inset: 0;
@@ -58,17 +61,21 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 22px;
+  justify-content: flex-start;
+  gap: clamp(10px, 2.2vh, 22px);
   background: radial-gradient(ellipse at 50% 30%, rgba(30, 20, 70, 0.75), rgba(3, 2, 12, 0.88));
-  padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+  padding: calc(8px + env(safe-area-inset-top)) 16px calc(12px + env(safe-area-inset-bottom));
   text-align: center;
+  overflow-y: auto;
+  touch-action: pan-y;   /* autorise le défilement tactile sur les écrans HTML */
 }
+.screen > :first-child { margin-top: auto; }
+.screen > :last-child { margin-bottom: auto; }
 .hidden { display: none !important; }
 
 .title-logo { line-height: 1.05; }
 .title-main {
-  font-size: clamp(44px, 15vw, 76px);
+  font-size: clamp(34px, min(15vw, 7.5vh), 76px);
   font-weight: 900;
   letter-spacing: 4px;
   color: #eaf6ff;
@@ -78,8 +85,8 @@ html, body {
   animation: pulse 2.2s ease-in-out infinite;
 }
 .title-sub {
-  margin-top: 10px;
-  font-size: clamp(13px, 4vw, 18px);
+  margin-top: clamp(4px, 0.9vh, 10px);
+  font-size: clamp(12px, min(4vw, 2vh), 18px);
   letter-spacing: 6px;
   color: #ff9d45;
   text-shadow: 0 0 10px #ff5500;
@@ -124,7 +131,7 @@ html, body {
 
 .big-btn {
   min-width: 240px;
-  padding: 16px 28px;
+  padding: clamp(11px, 1.8vh, 16px) 28px;
   font-family: inherit;
   font-size: clamp(15px, 4.6vw, 19px);
   font-weight: 900;
@@ -175,7 +182,7 @@ html, body {
 }
 #pseudo-input {
   width: min(280px, 74vw);
-  padding: 12px 14px;
+  padding: clamp(8px, 1.4vh, 12px) 14px;
   font-family: inherit;
   font-size: clamp(16px, 5vw, 20px);
   font-weight: 900;
@@ -210,7 +217,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 10px 8px;
+  padding: clamp(6px, 1.2vh, 10px) 8px;
   font-family: inherit;
   color: #9fb4d8;
   background: rgba(8, 16, 36, 0.7);
@@ -301,7 +308,20 @@ html, body {
   background: rgba(6, 12, 30, 0.6);
   border: 1px solid rgba(90, 150, 220, 0.3);
   border-radius: 10px;
-  padding: 12px 14px;
+  padding: clamp(8px, 1.4vh, 12px) 14px;
+}
+
+/* Smartphones à écran court : on compacte pour que l'écran titre entier
+   (logo → classement complet) tienne sans troncature. */
+@media (max-height: 760px) {
+  #screen-title .hint { display: none; }
+  #screen-title .title-logo .title-main { letter-spacing: 2px; }
+  #screen-title .hiscore { line-height: 1.35; }
+  .lb-body { font-size: clamp(11px, 3vw, 12px); }
+  .lb-row { padding: 2px 0; }
+  .lb-title { margin-bottom: 6px; }
+  .lb-tabs { margin-bottom: 6px; }
+  .lb-tab { padding: 4px 8px; }
 }
 .lb-title {
   font-size: clamp(11px, 3.2vw, 13px);
